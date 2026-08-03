@@ -909,14 +909,17 @@ def mdblist_connect():
 		xbmcgui.Dialog().ok(ADDON_NAME, message)
 		return
 
+	# Stays in the message on every update below: DialogProgress.update()
+	# replaces the whole message, so a "waiting" line without it would erase
+	# the code from view the moment the first tick lands.
+	instructions = _fmt(S_MDBLIST_ENTER_CODE, auth['verification_uri'], auth['user_code'])
 	progress = xbmcgui.DialogProgress()
-	progress.create(ADDON_NAME, _fmt(S_MDBLIST_ENTER_CODE, auth['verification_uri'], auth['user_code']))
+	progress.create(ADDON_NAME, '%s\n%s' % (instructions, _(S_MDBLIST_WAITING)))
 	monitor = xbmc.Monitor()
 
 	def wait(seconds):
-		# waitForAbort sleeps AND doubles as the Kodi-shutdown check; the
-		# progress-bar update piggybacks on the same tick.
-		progress.update(50, _(S_MDBLIST_WAITING))
+		# waitForAbort sleeps AND doubles as the Kodi-shutdown check.
+		progress.update(50, '%s\n%s' % (instructions, _(S_MDBLIST_WAITING)))
 		monitor.waitForAbort(seconds)
 
 	def cancelled():
