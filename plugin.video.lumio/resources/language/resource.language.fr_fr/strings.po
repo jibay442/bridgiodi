@@ -345,3 +345,83 @@ msgstr "Lancer directement depuis TMDb Helper"
 msgctxt "#30134"
 msgid "Skips the source list for playback started outside Lumio, so TMDb Helper is one click. Turn this off to be asked there too. Independent of the setting under Filter, which only covers browsing inside Lumio."
 msgstr "Saute la liste des sources pour les lectures lancees hors de Lumio, pour que TMDb Helper soit en un clic. Desactive-le pour qu'on te demande la aussi. Independant du reglage de l'onglet Filter, qui ne concerne que la navigation dans Lumio."
+
+msgctxt "#30135"
+msgid "MDBList"
+msgstr "MDBList"
+
+msgctxt "#30136"
+msgid "Up Next & watched sync"
+msgstr "Up Next et suivi vu"
+
+msgctxt "#30137"
+msgid "Enable MDBList integration"
+msgstr "Activer l'integration MDBList"
+
+msgctxt "#30138"
+msgid "Adds an optional continue-watching section sourced from MDBList's Up Next, and reports watched movies/episodes back to your MDBList account. Independent of TMDB and Cinemeta, which remain the catalogue and episode-list sources."
+msgstr "Ajoute une section optionnelle de reprise de lecture basee sur le Up Next de MDBList, et signale les films/episodes vus a ton compte MDBList. Independant de TMDB et Cinemeta, qui restent les sources de catalogue et de liste d'episodes."
+
+msgctxt "#30139"
+msgid "MDBList client ID"
+msgstr "Client ID MDBList"
+
+msgctxt "#30140"
+msgid "From a Device Code app you register at mdblist.com/developer. Needed to connect an account."
+msgstr "Celui d'une app Device Code enregistree sur mdblist.com/developer. Necessaire pour connecter un compte."
+
+msgctxt "#30141"
+msgid "Connect MDBList account"
+msgstr "Connecter un compte MDBList"
+
+msgctxt "#30142"
+msgid "Starts the device sign-in flow and shows a code to enter on mdblist.com."
+msgstr "Lance la connexion par code et affiche un code a saisir sur mdblist.com."
+
+msgctxt "#30143"
+msgid "Disconnect MDBList account"
+msgstr "Deconnecter le compte MDBList"
+
+msgctxt "#30144"
+msgid "Up Next"
+msgstr "Up Next"
+
+msgctxt "#30145"
+msgid "No MDBList client ID configured. Set one in settings first."
+msgstr "Aucun client ID MDBList configure. Renseigne-le d'abord dans les reglages."
+
+msgctxt "#30146"
+msgid "Go to %s and enter code: %s"
+msgstr "Va sur %s et entre le code : %s"
+
+msgctxt "#30147"
+msgid "Waiting for approval..."
+msgstr "En attente de validation..."
+
+msgctxt "#30148"
+msgid "MDBList account connected"
+msgstr "Compte MDBList connecte"
+
+msgctxt "#30149"
+msgid "Connection cancelled"
+msgstr "Connexion annulee"
+
+msgctxt "#30150"
+msgid "Could not connect to MDBList: %s"
+msgstr "Connexion a MDBList impossible : %s"
+
+msgctxt "#30151"
+msgid "MDBList account disconnected"
+msgstr "Compte MDBList deconnecte"
+
+msgctxt "#30152"
+msgid "MDBList account not connected"
+msgstr "Compte MDBList non connecte"
+
+msgctxt "#30153"
+msgid "Nothing in progress on MDBList"
+msgstr "Rien en cours sur MDBList"
+
+msgctxt "#30154"
+msgid "Could not load Up Next: %s"
+msgstr "Chargement du Up Next impossible : %s"

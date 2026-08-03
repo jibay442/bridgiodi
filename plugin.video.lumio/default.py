@@ -10,7 +10,7 @@ import xbmcgui
 import xbmcplugin
 import xbmcaddon
 
-from resources.lib import cache, net, tmdb, tmdbhelper
+from resources.lib import cache, mdblist, net, tmdb, tmdbhelper
 
 ADDON = xbmcaddon.Addon()
 ADDON_NAME = ADDON.getAddonInfo('name')
@@ -60,6 +60,17 @@ S_PICK_SOURCE = 30127
 S_TH_INSTALLED = 30129
 S_TH_MISSING = 30130
 S_TH_FAILED = 30131
+S_MDBLIST_UPNEXT = 30144
+S_MDBLIST_NO_CLIENT_ID = 30145
+S_MDBLIST_ENTER_CODE = 30146
+S_MDBLIST_WAITING = 30147
+S_MDBLIST_CONNECTED = 30148
+S_MDBLIST_CANCELLED = 30149
+S_MDBLIST_CONNECT_FAILED = 30150
+S_MDBLIST_DISCONNECTED = 30151
+S_MDBLIST_NOT_CONNECTED = 30152
+S_MDBLIST_EMPTY = 30153
+S_MDBLIST_LOAD_FAILED = 30154
 
 
 def _(string_id):
@@ -575,6 +586,51 @@ def resolve_and_play(url, scrobble_meta=None, resume=None, card=None):
 			li.setProperty('ResumeTime', str(position))
 			li.setProperty('TotalTime', str(total))
 	xbmcplugin.setResolvedUrl(HANDLE, True, li)
+	_track_mdblist_watched(scrobble_meta)
+
+
+def _track_mdblist_watched(scrobble_meta):
+	"""Blocks until this playback ends, then reports it watched to MDBList.
+
+	Runs in-process rather than via a background service - this addon has
+	none, and adding one solely for this would mean an addon.xml change and
+	a Kodi restart to register. The tradeoff: this plugin invocation stays
+	alive for the whole runtime of the video (Kodi does not require a
+	resolver script to exit right after setResolvedUrl).
+	"""
+	if not scrobble_meta or not scrobble_meta.get('imdbnumber') or not _mdblist_ready():
+		return
+
+	monitor = xbmc.Monitor()
+	player = xbmc.Player()
+	for _i in range(50):
+		if monitor.waitForAbort(0.2):
+			return
+		if player.isPlayingVideo():
+			break
+	else:
+		return
+
+	position, total = 0, 0
+	while player.isPlayingVideo():
+		try:
+			position, total = player.getTime(), player.getTotalTime()
+		except Exception:
+			pass
+		if monitor.waitForAbort(5):
+			return
+
+	if not total or position / total < mdblist.WATCHED_THRESHOLD:
+		return
+	try:
+		if scrobble_meta.get('mediatype') == 'episode':
+			mdblist.mark_episode_watched(
+				scrobble_meta['imdbnumber'], scrobble_meta.get('season'), scrobble_meta.get('episode'))
+		else:
+			mdblist.mark_movie_watched(scrobble_meta['imdbnumber'])
+		log_debug('mdblist: marked %s watched' % scrobble_meta['imdbnumber'])
+	except Exception as e:
+		log('mdblist watched-sync failed: %s' % e)
 
 
 def render_items(items, next_page_params=None):
@@ -839,16 +895,127 @@ def install_th_player():
 	xbmcgui.Dialog().ok(ADDON_NAME, '%s\n\n%s' % (_(S_TH_INSTALLED), target))
 
 
+def _mdblist_ready():
+	"""On, AND connected - the two things required before any MDBList call."""
+	return ADDON.getSetting('mdblist_enabled') == 'true' and mdblist.is_connected()
+
+
+def mdblist_connect():
+	"""Device-code sign-in, run from the settings screen's Connect button."""
+	try:
+		auth = mdblist.start_device_auth()
+	except mdblist.MdblistError as e:
+		message = _(S_MDBLIST_NO_CLIENT_ID) if 'client id' in str(e) else _fmt(S_MDBLIST_CONNECT_FAILED, e)
+		xbmcgui.Dialog().ok(ADDON_NAME, message)
+		return
+
+	progress = xbmcgui.DialogProgress()
+	progress.create(ADDON_NAME, _fmt(S_MDBLIST_ENTER_CODE, auth['verification_uri'], auth['user_code']))
+	monitor = xbmc.Monitor()
+
+	def wait(seconds):
+		# waitForAbort sleeps AND doubles as the Kodi-shutdown check; the
+		# progress-bar update piggybacks on the same tick.
+		progress.update(50, _(S_MDBLIST_WAITING))
+		monitor.waitForAbort(seconds)
+
+	def cancelled():
+		return progress.iscanceled() or monitor.abortRequested()
+
+	try:
+		token = mdblist.poll_device_token(
+			auth['device_code'], auth.get('interval', 5), auth.get('expires_in', 300), wait, cancelled)
+	except mdblist.MdblistError as e:
+		progress.close()
+		xbmcgui.Dialog().ok(ADDON_NAME, _fmt(S_MDBLIST_CONNECT_FAILED, e))
+		return
+	progress.close()
+
+	if not token:
+		xbmcgui.Dialog().notification(ADDON_NAME, _(S_MDBLIST_CANCELLED), xbmcgui.NOTIFICATION_INFO)
+		return
+	xbmcgui.Dialog().notification(ADDON_NAME, _(S_MDBLIST_CONNECTED), xbmcgui.NOTIFICATION_INFO)
+
+
+def mdblist_disconnect():
+	mdblist.disconnect()
+	xbmcgui.Dialog().notification(ADDON_NAME, _(S_MDBLIST_DISCONNECTED), xbmcgui.NOTIFICATION_INFO)
+
+
+def _upnext_card(item):
+	"""Best-effort ListItem info from one /upnext row.
+
+	The response is documented loosely ("show metadata, next-episode
+	details..."), not as a typed schema, so everything here is read
+	defensively with fallbacks instead of assumed to exist.
+	"""
+	show = item.get('show') or item
+	episode = item.get('next_episode') or item.get('episode') or {}
+	ids = show.get('ids') or item.get('ids') or {}
+	return {
+		'imdb': ids.get('imdb') or '',
+		'tvshowtitle': show.get('title') or '',
+		'title': episode.get('title') or '',
+		'season': episode.get('season'),
+		'episode': episode.get('number') or episode.get('episode'),
+		'plot': episode.get('overview') or show.get('overview') or '',
+		'poster': show.get('poster') or show.get('poster_path') or '',
+		'fanart': show.get('fanart') or show.get('backdrop_path') or '',
+	}
+
+
+def list_upnext():
+	if not _mdblist_ready():
+		xbmcgui.Dialog().notification(ADDON_NAME, _(S_MDBLIST_NOT_CONNECTED), xbmcgui.NOTIFICATION_INFO)
+		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+		return
+	try:
+		items = mdblist.get_upnext()
+	except Exception as e:
+		xbmcgui.Dialog().notification(ADDON_NAME, _fmt(S_MDBLIST_LOAD_FAILED, e), xbmcgui.NOTIFICATION_ERROR)
+		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+		return
+	if not items:
+		xbmcgui.Dialog().notification(ADDON_NAME, _(S_MDBLIST_EMPTY), xbmcgui.NOTIFICATION_INFO)
+		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+		return
+
+	xbmcplugin.setContent(HANDLE, 'episodes')
+	auto_play = ADDON.getSetting('auto_play_best') == 'true'
+	target_action = 'episode_play_best' if auto_play else 'episode_streams'
+	for row in items:
+		card = _upnext_card(row)
+		if not card['imdb'] or not card['season'] or not card['episode']:
+			continue
+		label = '%s - %sx%02d' % (card['tvshowtitle'] or _(S_MDBLIST_UPNEXT), card['season'], card['episode'])
+		li = xbmcgui.ListItem(label=label)
+		apply_info(li, dict(card, mediatype='episode'), 'episode')
+		if auto_play:
+			li.setProperty('IsPlayable', 'true')
+		url_params = {
+			'action': target_action, 'imdb': card['imdb'], 'season': card['season'], 'episode': card['episode'],
+			'mediatype': 'episode', 'imdbnumber': card['imdb'],
+			'tvshowtitle': card['tvshowtitle'], 'title': card['title'], 'poster': card['poster'],
+		}
+		if auto_play:
+			add_pick_source(li, dict(url_params, action='episode_streams'))
+		url = '%s?%s' % (BASE_URL, urlencode(url_params))
+		xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=not auto_play)
+	xbmcplugin.endOfDirectory(HANDLE)
+
+
 def root_menu():
 	xbmcplugin.setContent(HANDLE, 'videos')
 
-	items = (
+	items = [
 		(S_MOVIES, {'action': 'section', 'kind': 'movie'}),
 		(S_SERIES, {'action': 'section', 'kind': 'tv'}),
 		(S_ANIME, {'action': 'section', 'kind': 'anime'}),
 		(S_SEARCH_MOVIES, {'action': 'search', 'media': 'movie'}),
 		(S_SEARCH_SERIES, {'action': 'search', 'media': 'tv'}),
-	)
+	]
+	if _mdblist_ready():
+		items.append((S_MDBLIST_UPNEXT, {'action': 'mdblist_upnext'}))
 	for string_id, params in items:
 		li = xbmcgui.ListItem(label=_(string_id))
 		url = '%s?%s' % (BASE_URL, urlencode(params))
@@ -970,6 +1137,12 @@ def router():
 		install_th_player()
 	elif action == 'open_settings':
 		open_settings()
+	elif action == 'mdblist_connect':
+		mdblist_connect()
+	elif action == 'mdblist_disconnect':
+		mdblist_disconnect()
+	elif action == 'mdblist_upnext':
+		list_upnext()
 	elif action in ('movie_streams', 'movie_play_best'):
 		imdb_id = _movie_imdb(params)
 		meta = dict(_scrobble_meta(params), imdbnumber=imdb_id) if imdb_id else {}

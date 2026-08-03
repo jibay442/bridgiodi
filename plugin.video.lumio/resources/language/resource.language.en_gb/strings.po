@@ -345,3 +345,83 @@ msgstr ""
 msgctxt "#30134"
 msgid "Skips the source list for playback started outside Lumio, so TMDb Helper is one click. Turn this off to be asked there too. Independent of the setting under Filter, which only covers browsing inside Lumio."
 msgstr ""
+
+msgctxt "#30135"
+msgid "MDBList"
+msgstr ""
+
+msgctxt "#30136"
+msgid "Up Next & watched sync"
+msgstr ""
+
+msgctxt "#30137"
+msgid "Enable MDBList integration"
+msgstr ""
+
+msgctxt "#30138"
+msgid "Adds an optional continue-watching section sourced from MDBList's Up Next, and reports watched movies/episodes back to your MDBList account. Independent of TMDB and Cinemeta, which remain the catalogue and episode-list sources."
+msgstr ""
+
+msgctxt "#30139"
+msgid "MDBList client ID"
+msgstr ""
+
+msgctxt "#30140"
+msgid "From a Device Code app you register at mdblist.com/developer. Needed to connect an account."
+msgstr ""
+
+msgctxt "#30141"
+msgid "Connect MDBList account"
+msgstr ""
+
+msgctxt "#30142"
+msgid "Starts the device sign-in flow and shows a code to enter on mdblist.com."
+msgstr ""
+
+msgctxt "#30143"
+msgid "Disconnect MDBList account"
+msgstr ""
+
+msgctxt "#30144"
+msgid "Up Next"
+msgstr ""
+
+msgctxt "#30145"
+msgid "No MDBList client ID configured. Set one in settings first."
+msgstr ""
+
+msgctxt "#30146"
+msgid "Go to %s and enter code: %s"
+msgstr ""
+
+msgctxt "#30147"
+msgid "Waiting for approval..."
+msgstr ""
+
+msgctxt "#30148"
+msgid "MDBList account connected"
+msgstr ""
+
+msgctxt "#30149"
+msgid "Connection cancelled"
+msgstr ""
+
+msgctxt "#30150"
+msgid "Could not connect to MDBList: %s"
+msgstr ""
+
+msgctxt "#30151"
+msgid "MDBList account disconnected"
+msgstr ""
+
+msgctxt "#30152"
+msgid "MDBList account not connected"
+msgstr ""
+
+msgctxt "#30153"
+msgid "Nothing in progress on MDBList"
+msgstr ""
+
+msgctxt "#30154"
+msgid "Could not load Up Next: %s"
+msgstr ""
