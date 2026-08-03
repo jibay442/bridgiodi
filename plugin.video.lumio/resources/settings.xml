@@ -1,0 +1,259 @@
+<?xml version="1.0" ?>
+<settings version="1">
+	<section id="plugin.video.lumio">
+		<category id="general" label="30000">
+			<group id="1">
+				<setting id="debug_logging" type="boolean" label="30002" help="30003">
+					<level>0</level>
+					<default>false</default>
+					<control type="toggle"/>
+				</setting>
+			</group>
+		</category>
+		<category id="tmdb" label="30105">
+			<group id="1" label="30106">
+				<setting id="tmdb_api_key" type="string" label="30107" help="30108">
+					<level>0</level>
+					<default/>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<control type="edit" format="string">
+						<heading>30107</heading>
+					</control>
+				</setting>
+				<setting id="anime_filter" type="integer" label="30111" help="30112">
+					<level>0</level>
+					<default>0</default>
+					<constraints>
+						<options>
+							<option label="30113">0</option>
+							<option label="30114">1</option>
+						</options>
+					</constraints>
+					<control type="list" format="integer"/>
+				</setting>
+				<setting id="tmdb_include_adult" type="boolean" label="30109" help="30110">
+					<level>0</level>
+					<default>false</default>
+					<control type="toggle"/>
+				</setting>
+				<setting id="external_auto_play" type="boolean" label="30133" help="30134">
+					<level>0</level>
+					<default>true</default>
+					<control type="toggle"/>
+				</setting>
+				<setting id="install_th_player_action" type="action" label="30128" help="30132">
+					<level>0</level>
+					<data>RunPlugin(plugin://plugin.video.lumio/?action=install_th_player)</data>
+					<control type="button" format="action">
+						<close>true</close>
+					</control>
+				</setting>
+			</group>
+		</category>
+		<category id="addon" label="30025">
+			<group id="1">
+				<setting id="manifest_url" type="string" label="30001" help="30026">
+					<level>0</level>
+					<default/>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<control type="edit" format="string">
+						<heading>30001</heading>
+					</control>
+				</setting>
+			</group>
+		</category>
+		<category id="filter" label="30020">
+			<group id="1">
+				<setting id="sort_by_quality" type="boolean" label="30021" help="30022">
+					<level>0</level>
+					<default>true</default>
+					<control type="toggle"/>
+				</setting>
+				<setting id="sort_priority_1" type="integer" label="30080" help="30081" parent="sort_by_quality">
+					<level>0</level>
+					<default>2</default>
+					<constraints>
+						<options>
+							<option label="30088">0</option>
+							<option label="30089">1</option>
+							<option label="30090">2</option>
+							<option label="30091">3</option>
+							<option label="30092">4</option>
+							<option label="30093">5</option>
+							<option label="30094">6</option>
+							<option label="30095">7</option>
+						</options>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<condition operator="is" setting="sort_by_quality">true</condition>
+						</dependency>
+					</dependencies>
+					<control type="list" format="integer"/>
+				</setting>
+				<setting id="sort_priority_2" type="integer" label="30082" help="30081" parent="sort_by_quality">
+					<level>0</level>
+					<default>4</default>
+					<constraints>
+						<options>
+							<option label="30088">0</option>
+							<option label="30089">1</option>
+							<option label="30090">2</option>
+							<option label="30091">3</option>
+							<option label="30092">4</option>
+							<option label="30093">5</option>
+							<option label="30094">6</option>
+							<option label="30095">7</option>
+						</options>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<condition operator="is" setting="sort_by_quality">true</condition>
+						</dependency>
+					</dependencies>
+					<control type="list" format="integer"/>
+				</setting>
+				<setting id="sort_priority_3" type="integer" label="30083" help="30081" parent="sort_by_quality">
+					<level>0</level>
+					<default>3</default>
+					<constraints>
+						<options>
+							<option label="30088">0</option>
+							<option label="30089">1</option>
+							<option label="30090">2</option>
+							<option label="30091">3</option>
+							<option label="30092">4</option>
+							<option label="30093">5</option>
+							<option label="30094">6</option>
+							<option label="30095">7</option>
+						</options>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<condition operator="is" setting="sort_by_quality">true</condition>
+						</dependency>
+					</dependencies>
+					<control type="list" format="integer"/>
+				</setting>
+				<setting id="sort_priority_4" type="integer" label="30084" help="30081" parent="sort_by_quality">
+					<level>0</level>
+					<default>1</default>
+					<constraints>
+						<options>
+							<option label="30088">0</option>
+							<option label="30089">1</option>
+							<option label="30090">2</option>
+							<option label="30091">3</option>
+							<option label="30092">4</option>
+							<option label="30093">5</option>
+							<option label="30094">6</option>
+							<option label="30095">7</option>
+						</options>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<condition operator="is" setting="sort_by_quality">true</condition>
+						</dependency>
+					</dependencies>
+					<control type="list" format="integer"/>
+				</setting>
+				<setting id="sort_priority_5" type="integer" label="30085" help="30081" parent="sort_by_quality">
+					<level>0</level>
+					<default>0</default>
+					<constraints>
+						<options>
+							<option label="30088">0</option>
+							<option label="30089">1</option>
+							<option label="30090">2</option>
+							<option label="30091">3</option>
+							<option label="30092">4</option>
+							<option label="30093">5</option>
+							<option label="30094">6</option>
+							<option label="30095">7</option>
+						</options>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<condition operator="is" setting="sort_by_quality">true</condition>
+						</dependency>
+					</dependencies>
+					<control type="list" format="integer"/>
+				</setting>
+				<setting id="sort_priority_6" type="integer" label="30086" help="30081" parent="sort_by_quality">
+					<level>0</level>
+					<default>0</default>
+					<constraints>
+						<options>
+							<option label="30088">0</option>
+							<option label="30089">1</option>
+							<option label="30090">2</option>
+							<option label="30091">3</option>
+							<option label="30092">4</option>
+							<option label="30093">5</option>
+							<option label="30094">6</option>
+							<option label="30095">7</option>
+						</options>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<condition operator="is" setting="sort_by_quality">true</condition>
+						</dependency>
+					</dependencies>
+					<control type="list" format="integer"/>
+				</setting>
+				<setting id="sort_priority_7" type="integer" label="30087" help="30081" parent="sort_by_quality">
+					<level>0</level>
+					<default>0</default>
+					<constraints>
+						<options>
+							<option label="30088">0</option>
+							<option label="30089">1</option>
+							<option label="30090">2</option>
+							<option label="30091">3</option>
+							<option label="30092">4</option>
+							<option label="30093">5</option>
+							<option label="30094">6</option>
+							<option label="30095">7</option>
+						</options>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<condition operator="is" setting="sort_by_quality">true</condition>
+						</dependency>
+					</dependencies>
+					<control type="list" format="integer"/>
+				</setting>
+				<setting id="size_tolerance_gb" type="integer" label="30096" help="30097" parent="sort_by_quality">
+					<level>0</level>
+					<default>20</default>
+					<constraints>
+						<options>
+							<option label="30098">0</option>
+							<option label="30099">1</option>
+							<option label="30100">2</option>
+							<option label="30101">5</option>
+							<option label="30102">10</option>
+							<option label="30103">20</option>
+							<option label="30104">50</option>
+						</options>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<condition operator="is" setting="sort_by_quality">true</condition>
+						</dependency>
+					</dependencies>
+					<control type="list" format="integer"/>
+				</setting>
+				<setting id="auto_play_best" type="boolean" label="30023" help="30024">
+					<level>0</level>
+					<default>false</default>
+					<control type="toggle"/>
+				</setting>
+			</group>
+		</category>
+	</section>
+</settings>

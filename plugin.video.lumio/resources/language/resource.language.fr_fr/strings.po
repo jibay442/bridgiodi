@@ -1,0 +1,347 @@
+# Kodi Media Center language file
+msgid ""
+msgstr ""
+
+msgctxt "#30000"
+msgid "General"
+msgstr "Général"
+
+msgctxt "#30001"
+msgid "Stremio manifest URL"
+msgstr "URL du manifest Stremio"
+
+msgctxt "#30002"
+msgid "Debug logging"
+msgstr "Journalisation de débogage"
+
+msgctxt "#30003"
+msgid "Write extra detail to the Kodi log (stream requests, sort priorities in use). Leave off for normal use."
+msgstr "Écrit plus de détails dans le journal Kodi (requêtes de flux, priorités de tri utilisées). À laisser désactivé en usage normal."
+
+
+msgctxt "#30020"
+msgid "Filter"
+msgstr "Filtre"
+
+msgctxt "#30025"
+msgid "Addon (Stremio)"
+msgstr "Addon (Stremio)"
+
+msgctxt "#30026"
+msgid "Your personal Stremio manifest URL, ending in /manifest.json. Keep it private."
+msgstr "L'URL de ton manifest Stremio personnel, terminant par /manifest.json. À garder confidentielle."
+
+msgctxt "#30021"
+msgid "Sort streams by quality (Dolby Vision / HDR / resolution first)"
+msgstr "Trier les flux par qualité (Dolby Vision / HDR / résolution en premier)"
+
+msgctxt "#30022"
+msgid "Ranks streams so the best one (Dolby Vision, then HDR, then highest resolution) is always listed first."
+msgstr "Classe les flux pour que le meilleur (Dolby Vision, puis HDR, puis la résolution la plus haute) soit toujours affiché en premier."
+
+msgctxt "#30023"
+msgid "Always play the best stream automatically"
+msgstr "Toujours lire automatiquement le meilleur flux"
+
+msgctxt "#30024"
+msgid "Skips the stream selection list and plays the top-ranked stream directly. Requires quality sorting above to be meaningful."
+msgstr "Ignore la liste de sélection des flux et lance directement le mieux classé. N'a de sens que si le tri par qualité ci-dessus est activé."
+
+msgctxt "#30080"
+msgid "Priority 1"
+msgstr "Priorité 1"
+
+msgctxt "#30081"
+msgid "Streams are ranked by priority 1 first; equal streams are then split by priority 2, and so on. Leave a slot on \"Not used\" to ignore it."
+msgstr "Les flux sont classés par la priorité 1 d'abord ; en cas d'égalité, la priorité 2 tranche, et ainsi de suite. Laisse un niveau sur « Non utilisé » pour l'ignorer."
+
+msgctxt "#30082"
+msgid "Priority 2"
+msgstr "Priorité 2"
+
+msgctxt "#30083"
+msgid "Priority 3"
+msgstr "Priorité 3"
+
+msgctxt "#30084"
+msgid "Priority 4"
+msgstr "Priorité 4"
+
+msgctxt "#30085"
+msgid "Priority 5"
+msgstr "Priorité 5"
+
+msgctxt "#30086"
+msgid "Priority 6"
+msgstr "Priorité 6"
+
+msgctxt "#30087"
+msgid "Priority 7"
+msgstr "Priorité 7"
+
+msgctxt "#30088"
+msgid "Not used"
+msgstr "Non utilisé"
+
+msgctxt "#30089"
+msgid "File size (biggest first)"
+msgstr "Taille du fichier (le plus gros d'abord)"
+
+msgctxt "#30090"
+msgid "Resolution (4K > 1080p > 720p)"
+msgstr "Résolution (4K > 1080p > 720p)"
+
+msgctxt "#30091"
+msgid "HDR (HDR10+ > HDR10)"
+msgstr "HDR (HDR10+ > HDR10)"
+
+msgctxt "#30092"
+msgid "Dolby Vision"
+msgstr "Dolby Vision"
+
+msgctxt "#30093"
+msgid "Audio channels (7.1 > 5.1 > 2.0)"
+msgstr "Canaux audio (7.1 > 5.1 > 2.0)"
+
+msgctxt "#30094"
+msgid "Audio format (Atmos > TrueHD > DTS-HD > EAC3 > AC3)"
+msgstr "Format audio (Atmos > TrueHD > DTS-HD > EAC3 > AC3)"
+
+msgctxt "#30095"
+msgid "Video codec (AV1 > HEVC > H.264)"
+msgstr "Codec vidéo (AV1 > HEVC > H.264)"
+
+
+
+
+
+
+
+msgctxt "#30036"
+msgid "Search Movies"
+msgstr "Rechercher un Film"
+
+msgctxt "#30037"
+msgid "Search TV Shows"
+msgstr "Rechercher une Série"
+
+msgctxt "#30044"
+msgid "Settings"
+msgstr "Réglages"
+
+msgctxt "#30045"
+msgid "Next Page >>"
+msgstr "Page Suivante >>"
+
+msgctxt "#30046"
+msgid "Season %s"
+msgstr "Saison %s"
+
+msgctxt "#30047"
+msgid "Specials"
+msgstr "Spéciaux"
+
+
+msgctxt "#30049"
+msgid "Search movies"
+msgstr "Rechercher un film"
+
+msgctxt "#30050"
+msgid "Search TV shows"
+msgstr "Rechercher une série"
+
+msgctxt "#30051"
+msgid "No manifest URL configured. Add your personal Stremio manifest URL in the addon settings."
+msgstr "Aucune URL de manifest configurée. Ajoute ton URL de manifest Stremio personnelle dans les réglages de l'addon."
+
+msgctxt "#30052"
+msgid "No streams found"
+msgstr "Aucun flux trouvé"
+
+msgctxt "#30053"
+msgid "No results"
+msgstr "Aucun résultat"
+
+msgctxt "#30054"
+msgid "Search failed"
+msgstr "Échec de la recherche"
+
+msgctxt "#30055"
+msgid "Failed to load list"
+msgstr "Échec du chargement de la liste"
+
+msgctxt "#30056"
+msgid "Failed to load episodes"
+msgstr "Échec du chargement des épisodes"
+
+msgctxt "#30057"
+msgid "No episodes found"
+msgstr "Aucun épisode trouvé"
+
+msgctxt "#30058"
+msgid "HTTP error %s"
+msgstr "Erreur HTTP %s"
+
+msgctxt "#30059"
+msgid "Unreachable: %s"
+msgstr "Injoignable : %s"
+
+msgctxt "#30060"
+msgid "Error fetching streams"
+msgstr "Erreur lors de la récupération des flux"
+
+msgctxt "#30096"
+msgid "Size tolerance"
+msgstr "Tolérance sur la taille"
+
+msgctxt "#30097"
+msgid "How close two files must be to count as the same size. Measured down from the biggest file in the list, so anything within this much of it ties and the next priority decides. Set it wide enough that a few GB never outweigh Dolby Vision."
+msgstr "L'écart en dessous duquel deux fichiers comptent comme de taille égale. Mesuré à partir du plus gros fichier de la liste : tout ce qui est à moins de cet écart de lui est à égalité, et c'est la priorité suivante qui tranche. À régler assez large pour que quelques Go ne pèsent jamais plus que le Dolby Vision."
+
+msgctxt "#30098"
+msgid "Exact size, to the byte"
+msgstr "Taille exacte, à l'octet"
+
+msgctxt "#30099"
+msgid "1 GB"
+msgstr "1 Go"
+
+msgctxt "#30100"
+msgid "2 GB"
+msgstr "2 Go"
+
+msgctxt "#30101"
+msgid "5 GB"
+msgstr "5 Go"
+
+msgctxt "#30102"
+msgid "10 GB"
+msgstr "10 Go"
+
+msgctxt "#30103"
+msgid "20 GB"
+msgstr "20 Go"
+
+msgctxt "#30104"
+msgid "50 GB"
+msgstr "50 Go"
+
+msgctxt "#30105"
+msgid "Catalogue (TMDB)"
+msgstr "Catalogue (TMDB)"
+
+msgctxt "#30106"
+msgid "This product uses TMDB and the TMDB APIs but is not endorsed, certified, or otherwise approved by TMDB."
+msgstr "This product uses TMDB and the TMDB APIs but is not endorsed, certified, or otherwise approved by TMDB."
+
+msgctxt "#30107"
+msgid "TMDB API key"
+msgstr "Cle API TMDB"
+
+msgctxt "#30108"
+msgid "Required to browse catalogues. A key is free from themoviedb.org, under Settings then API."
+msgstr "Necessaire pour parcourir les catalogues. La cle est gratuite sur themoviedb.org, dans Reglages puis API."
+
+msgctxt "#30109"
+msgid "Include adult titles"
+msgstr "Inclure les titres pour adultes"
+
+msgctxt "#30110"
+msgid "Only affects genre, year and anime browsing, which are the ones filtered server-side."
+msgstr "N'affecte que la navigation par genre, annee et anime, les seules filtrees cote serveur."
+
+msgctxt "#30111"
+msgid "Anime detection"
+msgstr "Detection des animes"
+
+msgctxt "#30112"
+msgid "TMDB has no anime category. Either match the anime keyword, which is precise but relies on volunteer tagging, or take all Japanese animation, which is broader but catches non-anime."
+msgstr "TMDB n'a pas de categorie anime. Soit on s'appuie sur le mot-cle anime, precis mais dependant du travail des benevoles, soit sur toute l'animation japonaise, plus large mais qui attrape des non-animes."
+
+msgctxt "#30113"
+msgid "Anime keyword (precise)"
+msgstr "Mot-cle anime (precis)"
+
+msgctxt "#30114"
+msgid "Japanese animation (broad)"
+msgstr "Animation japonaise (large)"
+
+msgctxt "#30115"
+msgid "No TMDB API key configured. Get a free key at themoviedb.org and add it in the addon settings."
+msgstr "Aucune cle API TMDB configuree. Recupere une cle gratuite sur themoviedb.org et renseigne-la dans les reglages."
+
+msgctxt "#30116"
+msgid "Movies"
+msgstr "Films"
+
+msgctxt "#30117"
+msgid "TV Shows"
+msgstr "Series"
+
+msgctxt "#30118"
+msgid "Anime"
+msgstr "Animes"
+
+msgctxt "#30119"
+msgid "Popular"
+msgstr "Populaires"
+
+msgctxt "#30120"
+msgid "Box office"
+msgstr "Box-office"
+
+msgctxt "#30121"
+msgid "Top rated"
+msgstr "Mieux notes"
+
+msgctxt "#30122"
+msgid "By genre"
+msgstr "Par genre"
+
+msgctxt "#30123"
+msgid "By year"
+msgstr "Par annee"
+
+msgctxt "#30124"
+msgid "Anime movies"
+msgstr "Films d'animation japonaise"
+
+msgctxt "#30125"
+msgid "No IMDb id for this title, so no streams can be found"
+msgstr "Pas d'identifiant IMDb pour ce titre, aucun flux ne peut etre trouve"
+
+msgctxt "#30126"
+msgid "TMDB error: %s"
+msgstr "Erreur TMDB : %s"
+
+msgctxt "#30127"
+msgid "Choose a source"
+msgstr "Choisir une source"
+
+msgctxt "#30128"
+msgid "Register Lumio in TMDb Helper"
+msgstr "Enregistrer Lumio dans TMDb Helper"
+
+msgctxt "#30129"
+msgid "Lumio is now a player in TMDb Helper. Pick it there as your player for movies and episodes."
+msgstr "Lumio est maintenant un player dans TMDb Helper. Choisis-le comme player pour les films et les episodes."
+
+msgctxt "#30130"
+msgid "TMDb Helper is not installed"
+msgstr "TMDb Helper n'est pas installe"
+
+msgctxt "#30131"
+msgid "Could not register the player: %s"
+msgstr "Impossible d'enregistrer le player : %s"
+
+msgctxt "#30132"
+msgid "Writes a player file into TMDb Helper so playing a movie or an episode from it uses Lumio. Nothing is written until you press this."
+msgstr "Ecrit un fichier player dans TMDb Helper pour que lancer un film ou un episode depuis lui passe par Lumio. Rien n'est ecrit avant que tu appuies ici."
+
+msgctxt "#30133"
+msgid "Play immediately when launched from TMDb Helper"
+msgstr "Lancer directement depuis TMDb Helper"
+
+msgctxt "#30134"
+msgid "Skips the source list for playback started outside Lumio, so TMDb Helper is one click. Turn this off to be asked there too. Independent of the setting under Filter, which only covers browsing inside Lumio."
+msgstr "Saute la liste des sources pour les lectures lancees hors de Lumio, pour que TMDb Helper soit en un clic. Desactive-le pour qu'on te demande la aussi. Independant du reglage de l'onglet Filter, qui ne concerne que la navigation dans Lumio."

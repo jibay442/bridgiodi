@@ -1,0 +1,347 @@
+# Kodi Media Center language file
+msgid ""
+msgstr ""
+
+msgctxt "#30000"
+msgid "General"
+msgstr ""
+
+msgctxt "#30001"
+msgid "Stremio manifest URL"
+msgstr ""
+
+msgctxt "#30002"
+msgid "Debug logging"
+msgstr ""
+
+msgctxt "#30003"
+msgid "Write extra detail to the Kodi log (stream requests, sort priorities in use). Leave off for normal use."
+msgstr ""
+
+
+msgctxt "#30020"
+msgid "Filter"
+msgstr ""
+
+msgctxt "#30025"
+msgid "Addon (Stremio)"
+msgstr ""
+
+msgctxt "#30026"
+msgid "Your personal Stremio manifest URL, ending in /manifest.json. Keep it private."
+msgstr ""
+
+msgctxt "#30021"
+msgid "Sort streams by quality (Dolby Vision / HDR / resolution first)"
+msgstr ""
+
+msgctxt "#30022"
+msgid "Ranks streams so the best one (Dolby Vision, then HDR, then highest resolution) is always listed first."
+msgstr ""
+
+msgctxt "#30023"
+msgid "Always play the best stream automatically"
+msgstr ""
+
+msgctxt "#30024"
+msgid "Skips the stream selection list and plays the top-ranked stream directly. Requires quality sorting above to be meaningful."
+msgstr ""
+
+msgctxt "#30080"
+msgid "Priority 1"
+msgstr ""
+
+msgctxt "#30081"
+msgid "Streams are ranked by priority 1 first; equal streams are then split by priority 2, and so on. Leave a slot on \"Not used\" to ignore it."
+msgstr ""
+
+msgctxt "#30082"
+msgid "Priority 2"
+msgstr ""
+
+msgctxt "#30083"
+msgid "Priority 3"
+msgstr ""
+
+msgctxt "#30084"
+msgid "Priority 4"
+msgstr ""
+
+msgctxt "#30085"
+msgid "Priority 5"
+msgstr ""
+
+msgctxt "#30086"
+msgid "Priority 6"
+msgstr ""
+
+msgctxt "#30087"
+msgid "Priority 7"
+msgstr ""
+
+msgctxt "#30088"
+msgid "Not used"
+msgstr ""
+
+msgctxt "#30089"
+msgid "File size (biggest first)"
+msgstr ""
+
+msgctxt "#30090"
+msgid "Resolution (4K > 1080p > 720p)"
+msgstr ""
+
+msgctxt "#30091"
+msgid "HDR (HDR10+ > HDR10)"
+msgstr ""
+
+msgctxt "#30092"
+msgid "Dolby Vision"
+msgstr ""
+
+msgctxt "#30093"
+msgid "Audio channels (7.1 > 5.1 > 2.0)"
+msgstr ""
+
+msgctxt "#30094"
+msgid "Audio format (Atmos > TrueHD > DTS-HD > EAC3 > AC3)"
+msgstr ""
+
+msgctxt "#30095"
+msgid "Video codec (AV1 > HEVC > H.264)"
+msgstr ""
+
+
+
+
+
+
+
+msgctxt "#30036"
+msgid "Search Movies"
+msgstr ""
+
+msgctxt "#30037"
+msgid "Search TV Shows"
+msgstr ""
+
+msgctxt "#30044"
+msgid "Settings"
+msgstr ""
+
+msgctxt "#30045"
+msgid "Next Page >>"
+msgstr ""
+
+msgctxt "#30046"
+msgid "Season %s"
+msgstr ""
+
+msgctxt "#30047"
+msgid "Specials"
+msgstr ""
+
+
+msgctxt "#30049"
+msgid "Search movies"
+msgstr ""
+
+msgctxt "#30050"
+msgid "Search TV shows"
+msgstr ""
+
+msgctxt "#30051"
+msgid "No manifest URL configured. Add your personal Stremio manifest URL in the addon settings."
+msgstr ""
+
+msgctxt "#30052"
+msgid "No streams found"
+msgstr ""
+
+msgctxt "#30053"
+msgid "No results"
+msgstr ""
+
+msgctxt "#30054"
+msgid "Search failed"
+msgstr ""
+
+msgctxt "#30055"
+msgid "Failed to load list"
+msgstr ""
+
+msgctxt "#30056"
+msgid "Failed to load episodes"
+msgstr ""
+
+msgctxt "#30057"
+msgid "No episodes found"
+msgstr ""
+
+msgctxt "#30058"
+msgid "HTTP error %s"
+msgstr ""
+
+msgctxt "#30059"
+msgid "Unreachable: %s"
+msgstr ""
+
+msgctxt "#30060"
+msgid "Error fetching streams"
+msgstr ""
+
+msgctxt "#30096"
+msgid "Size tolerance"
+msgstr ""
+
+msgctxt "#30097"
+msgid "How close two files must be to count as the same size. Measured down from the biggest file in the list, so anything within this much of it ties and the next priority decides. Set it wide enough that a few GB never outweigh Dolby Vision."
+msgstr ""
+
+msgctxt "#30098"
+msgid "Exact size, to the byte"
+msgstr ""
+
+msgctxt "#30099"
+msgid "1 GB"
+msgstr ""
+
+msgctxt "#30100"
+msgid "2 GB"
+msgstr ""
+
+msgctxt "#30101"
+msgid "5 GB"
+msgstr ""
+
+msgctxt "#30102"
+msgid "10 GB"
+msgstr ""
+
+msgctxt "#30103"
+msgid "20 GB"
+msgstr ""
+
+msgctxt "#30104"
+msgid "50 GB"
+msgstr ""
+
+msgctxt "#30105"
+msgid "Catalogue (TMDB)"
+msgstr ""
+
+msgctxt "#30106"
+msgid "This product uses TMDB and the TMDB APIs but is not endorsed, certified, or otherwise approved by TMDB."
+msgstr ""
+
+msgctxt "#30107"
+msgid "TMDB API key"
+msgstr ""
+
+msgctxt "#30108"
+msgid "Required to browse catalogues. A key is free from themoviedb.org, under Settings then API."
+msgstr ""
+
+msgctxt "#30109"
+msgid "Include adult titles"
+msgstr ""
+
+msgctxt "#30110"
+msgid "Only affects genre, year and anime browsing, which are the ones filtered server-side."
+msgstr ""
+
+msgctxt "#30111"
+msgid "Anime detection"
+msgstr ""
+
+msgctxt "#30112"
+msgid "TMDB has no anime category. Either match the anime keyword, which is precise but relies on volunteer tagging, or take all Japanese animation, which is broader but catches non-anime."
+msgstr ""
+
+msgctxt "#30113"
+msgid "Anime keyword (precise)"
+msgstr ""
+
+msgctxt "#30114"
+msgid "Japanese animation (broad)"
+msgstr ""
+
+msgctxt "#30115"
+msgid "No TMDB API key configured. Get a free key at themoviedb.org and add it in the addon settings."
+msgstr ""
+
+msgctxt "#30116"
+msgid "Movies"
+msgstr ""
+
+msgctxt "#30117"
+msgid "TV Shows"
+msgstr ""
+
+msgctxt "#30118"
+msgid "Anime"
+msgstr ""
+
+msgctxt "#30119"
+msgid "Popular"
+msgstr ""
+
+msgctxt "#30120"
+msgid "Box office"
+msgstr ""
+
+msgctxt "#30121"
+msgid "Top rated"
+msgstr ""
+
+msgctxt "#30122"
+msgid "By genre"
+msgstr ""
+
+msgctxt "#30123"
+msgid "By year"
+msgstr ""
+
+msgctxt "#30124"
+msgid "Anime movies"
+msgstr ""
+
+msgctxt "#30125"
+msgid "No IMDb id for this title, so no streams can be found"
+msgstr ""
+
+msgctxt "#30126"
+msgid "TMDB error: %s"
+msgstr ""
+
+msgctxt "#30127"
+msgid "Choose a source"
+msgstr ""
+
+msgctxt "#30128"
+msgid "Register Lumio in TMDb Helper"
+msgstr ""
+
+msgctxt "#30129"
+msgid "Lumio is now a player in TMDb Helper. Pick it there as your player for movies and episodes."
+msgstr ""
+
+msgctxt "#30130"
+msgid "TMDb Helper is not installed"
+msgstr ""
+
+msgctxt "#30131"
+msgid "Could not register the player: %s"
+msgstr ""
+
+msgctxt "#30132"
+msgid "Writes a player file into TMDb Helper so playing a movie or an episode from it uses Lumio. Nothing is written until you press this."
+msgstr ""
+
+msgctxt "#30133"
+msgid "Play immediately when launched from TMDb Helper"
+msgstr ""
+
+msgctxt "#30134"
+msgid "Skips the source list for playback started outside Lumio, so TMDb Helper is one click. Turn this off to be asked there too. Independent of the setting under Filter, which only covers browsing inside Lumio."
+msgstr ""
