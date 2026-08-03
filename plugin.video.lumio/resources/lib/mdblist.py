@@ -168,6 +168,26 @@ def get_upnext_watchlist(limit=25):
 	return data.get('items') or []
 
 
+def get_user_lists():
+	"""The connected user's own lists: [{id, name, slug, items, likes, ranked}]."""
+	data = net.get_json('%s/lists/user' % API, headers=_headers())
+	# Documented as a plain array, but kept tolerant of the {'lists': [...]}
+	# shape other /lists endpoints use, in case that ever changes.
+	return data if isinstance(data, list) else (data.get('lists') or [])
+
+
+def get_liked_lists(limit=100):
+	"""Lists the user has liked, most recently liked first."""
+	url = '%s/lists/liked?%s' % (API, urlencode({'limit': limit}))
+	data = net.get_json(url, headers=_headers())
+	return data.get('lists') or []
+
+
+def get_list_items(listid):
+	"""{'movies': [...], 'shows': [...]} for one list, by numeric id."""
+	return net.get_json('%s/lists/%s/items' % (API, listid), headers=_headers())
+
+
 def _iso_now():
 	return time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
 

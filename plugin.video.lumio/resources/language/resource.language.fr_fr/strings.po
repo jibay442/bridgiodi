@@ -433,3 +433,15 @@ msgstr "Watchlist MDBList"
 msgctxt "#30156"
 msgid "Nothing on your MDBList watchlist"
 msgstr "Rien dans ta watchlist MDBList"
+
+msgctxt "#30157"
+msgid "My MDBList lists"
+msgstr "Mes listes MDBList"
+
+msgctxt "#30158"
+msgid "Liked MDBList lists"
+msgstr "Listes MDBList likees"
+
+msgctxt "#30159"
+msgid "No lists found"
+msgstr "Aucune liste trouvee"

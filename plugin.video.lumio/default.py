@@ -73,6 +73,9 @@ S_MDBLIST_EMPTY = 30153
 S_MDBLIST_LOAD_FAILED = 30154
 S_MDBLIST_WATCHLIST = 30155
 S_MDBLIST_WATCHLIST_EMPTY = 30156
+S_MDBLIST_MY_LISTS = 30157
+S_MDBLIST_LIKED_LISTS = 30158
+S_MDBLIST_NO_LISTS = 30159
 
 
 def _(string_id):
@@ -1020,6 +1023,84 @@ def list_mdblist_watchlist():
 	_render_upnext(mdblist.get_upnext_watchlist, S_MDBLIST_WATCHLIST_EMPTY)
 
 
+def list_mdblist_lists(mode):
+	"""Root screen for either 'user' (own lists) or 'liked' (liked lists)."""
+	if not _mdblist_ready():
+		xbmcgui.Dialog().notification(ADDON_NAME, _(S_MDBLIST_NOT_CONNECTED), xbmcgui.NOTIFICATION_INFO)
+		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+		return
+	try:
+		rows = mdblist.get_user_lists() if mode == 'user' else mdblist.get_liked_lists()
+	except Exception as e:
+		xbmcgui.Dialog().notification(ADDON_NAME, _fmt(S_MDBLIST_LOAD_FAILED, e), xbmcgui.NOTIFICATION_ERROR)
+		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+		return
+	if not rows:
+		xbmcgui.Dialog().notification(ADDON_NAME, _(S_MDBLIST_NO_LISTS), xbmcgui.NOTIFICATION_INFO)
+		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+		return
+
+	xbmcplugin.setContent(HANDLE, 'videos')
+	for row in rows:
+		name = row.get('name') or ''
+		count = row.get('items')
+		label = '%s (%d)' % (name, count) if count else name
+		li = xbmcgui.ListItem(label=label)
+		url = '%s?%s' % (BASE_URL, urlencode({'action': 'mdblist_list_items', 'listid': row.get('id')}))
+		xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
+	xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+
+def _mdblist_list_card(row):
+	ids = row.get('ids') or {}
+	return {
+		'imdb': ids.get('imdb') or row.get('imdb_id') or '',
+		'tmdb': ids.get('tmdb') or '',
+		'title': row.get('title') or '',
+		'year': str(row.get('release_year') or ''),
+		'is_movie': (row.get('mediatype') or 'movie') == 'movie',
+	}
+
+
+def list_mdblist_list_items(listid):
+	"""Movies/shows inside one MDBList list - links straight into the normal
+	streams flow via imdb id, same as any other catalogue entry point."""
+	if not _mdblist_ready():
+		xbmcgui.Dialog().notification(ADDON_NAME, _(S_MDBLIST_NOT_CONNECTED), xbmcgui.NOTIFICATION_INFO)
+		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+		return
+	try:
+		data = mdblist.get_list_items(listid)
+	except Exception as e:
+		xbmcgui.Dialog().notification(ADDON_NAME, _fmt(S_MDBLIST_LOAD_FAILED, e), xbmcgui.NOTIFICATION_ERROR)
+		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+		return
+	rows = list(data.get('movies') or []) + list(data.get('shows') or [])
+	if not rows:
+		xbmcgui.Dialog().notification(ADDON_NAME, _(S_MDBLIST_EMPTY), xbmcgui.NOTIFICATION_INFO)
+		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+		return
+
+	xbmcplugin.setContent(HANDLE, 'videos')
+	for row in rows:
+		card = _mdblist_list_card(row)
+		if not card['imdb']:
+			# No IMDb id, no stream lookup possible - same rule TMDB items follow.
+			continue
+		label = '%s (%s)' % (card['title'], card['year']) if card['year'] else card['title']
+		li = xbmcgui.ListItem(label=label)
+		apply_info(li, card, 'movie' if card['is_movie'] else 'tvshow')
+		url_params = {
+			'action': 'movie_streams' if card['is_movie'] else 'seasons',
+			'imdb': card['imdb'], 'tmdb': card['tmdb'], 'title': card['title'], 'year': card['year'],
+		}
+		if card['is_movie']:
+			url_params['mediatype'] = 'movie'
+		url = '%s?%s' % (BASE_URL, urlencode(url_params))
+		xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
+	xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+
 def root_menu():
 	xbmcplugin.setContent(HANDLE, 'videos')
 
@@ -1033,6 +1114,8 @@ def root_menu():
 	if _mdblist_ready():
 		items.append((S_MDBLIST_UPNEXT, {'action': 'mdblist_upnext'}))
 		items.append((S_MDBLIST_WATCHLIST, {'action': 'mdblist_watchlist'}))
+		items.append((S_MDBLIST_MY_LISTS, {'action': 'mdblist_my_lists'}))
+		items.append((S_MDBLIST_LIKED_LISTS, {'action': 'mdblist_liked_lists'}))
 	for string_id, params in items:
 		li = xbmcgui.ListItem(label=_(string_id))
 		url = '%s?%s' % (BASE_URL, urlencode(params))
@@ -1162,6 +1245,12 @@ def router():
 		list_upnext()
 	elif action == 'mdblist_watchlist':
 		list_mdblist_watchlist()
+	elif action == 'mdblist_my_lists':
+		list_mdblist_lists('user')
+	elif action == 'mdblist_liked_lists':
+		list_mdblist_lists('liked')
+	elif action == 'mdblist_list_items':
+		list_mdblist_list_items(params.get('listid'))
 	elif action in ('movie_streams', 'movie_play_best'):
 		imdb_id = _movie_imdb(params)
 		meta = dict(_scrobble_meta(params), imdbnumber=imdb_id) if imdb_id else {}
