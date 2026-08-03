@@ -77,6 +77,25 @@ def all_entries(namespace, ttl=DEFAULT_TTL):
 	        if not ttl or now - entry.get('stamp', 0) <= ttl}
 
 
+def clear_all(exclude_namespaces=()):
+	"""Deletes every cache_*.json file except the given namespaces.
+
+	Used by the settings "Clear cache" button - excludes namespaces that
+	aren't really a cache (e.g. the MDBList auth token: losing that logs the
+	user out, which a cache-clearing button shouldn't do as a side effect).
+	Returns how many files were actually removed.
+	"""
+	profile = kodi.profile_dir()
+	keep = {'cache_%s.json' % ns for ns in exclude_namespaces}
+	_dirs, files = xbmcvfs.listdir(profile)
+	removed = 0
+	for name in files:
+		if name.startswith('cache_') and name.endswith('.json') and name not in keep:
+			if xbmcvfs.delete(os.path.join(profile, name)):
+				removed += 1
+	return removed
+
+
 def put(namespace, key, value):
 	entries = _load(namespace)
 	entries[str(key)] = {'stamp': time.time(), 'value': value}

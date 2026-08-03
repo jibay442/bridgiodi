@@ -8,6 +8,11 @@
 					<default>false</default>
 					<control type="toggle"/>
 				</setting>
+				<setting id="clear_cache_action" type="action" label="30161" help="30162">
+					<level>0</level>
+					<data>RunPlugin(plugin://plugin.video.lumio/?action=clear_cache)</data>
+					<control type="button" format="action"/>
+				</setting>
 			</group>
 		</category>
 		<category id="tmdb" label="30105">

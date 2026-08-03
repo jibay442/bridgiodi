@@ -76,6 +76,7 @@ S_MDBLIST_WATCHLIST_EMPTY = 30156
 S_MDBLIST_MY_LISTS = 30157
 S_MDBLIST_LIKED_LISTS = 30158
 S_MDBLIST_NO_LISTS = 30159
+S_CACHE_CLEARED = 30160
 
 
 def _(string_id):
@@ -882,6 +883,13 @@ def open_settings():
 	xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
 
 
+def clear_cache():
+	# The MDBList auth token lives in the same cache mechanism but isn't
+	# really a cache - clearing it here would silently log the user out.
+	removed = cache.clear_all(exclude_namespaces=('mdblist_auth',))
+	xbmcgui.Dialog().notification(ADDON_NAME, _fmt(S_CACHE_CLEARED, removed), xbmcgui.NOTIFICATION_INFO)
+
+
 def install_th_player():
 	"""Register Lumio as a TMDb Helper player, on explicit request only."""
 	if not tmdbhelper.helper_installed():
@@ -1237,6 +1245,8 @@ def router():
 		install_th_player()
 	elif action == 'open_settings':
 		open_settings()
+	elif action == 'clear_cache':
+		clear_cache()
 	elif action == 'mdblist_connect':
 		mdblist_connect()
 	elif action == 'mdblist_disconnect':

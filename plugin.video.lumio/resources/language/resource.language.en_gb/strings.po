@@ -445,3 +445,15 @@ msgstr ""
 msgctxt "#30159"
 msgid "No lists found"
 msgstr ""
+
+msgctxt "#30160"
+msgid "%d cache file(s) cleared"
+msgstr ""
+
+msgctxt "#30161"
+msgid "Clear cache"
+msgstr ""
+
+msgctxt "#30162"
+msgid "Deletes cached TMDB and Cinemeta data (catalog pages, details, episode lists), forcing a refetch next time. Does not disconnect your MDBList account."
+msgstr ""
