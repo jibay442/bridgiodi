@@ -636,6 +636,8 @@ def _browse(kind, catalog_id, screen=1, genre=None, year=None):
 		_tmdb_error(e, S_LOAD_LIST_FAILED)
 		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
 		return
+	log_debug('catalog %s/%s screen=%s genre=%s year=%s -> %d items, has_more=%s' %
+	          (kind, catalog_id, screen, genre, year, len(items), has_more))
 	next_page = None
 	if has_more:
 		next_page = {'action': 'catalog', 'kind': kind, 'catalog': catalog_id, 'screen': screen + 1}
