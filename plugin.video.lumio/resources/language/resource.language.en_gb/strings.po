@@ -425,3 +425,11 @@ msgstr ""
 msgctxt "#30154"
 msgid "Could not load Up Next: %s"
 msgstr ""
+
+msgctxt "#30155"
+msgid "MDBList watchlist"
+msgstr ""
+
+msgctxt "#30156"
+msgid "Nothing on your MDBList watchlist"
+msgstr ""

@@ -71,6 +71,8 @@ S_MDBLIST_DISCONNECTED = 30151
 S_MDBLIST_NOT_CONNECTED = 30152
 S_MDBLIST_EMPTY = 30153
 S_MDBLIST_LOAD_FAILED = 30154
+S_MDBLIST_WATCHLIST = 30155
+S_MDBLIST_WATCHLIST_EMPTY = 30156
 
 
 def _(string_id):
@@ -967,19 +969,19 @@ def _upnext_card(item):
 	}
 
 
-def list_upnext():
+def _render_upnext(fetch, empty_string_id):
 	if not _mdblist_ready():
 		xbmcgui.Dialog().notification(ADDON_NAME, _(S_MDBLIST_NOT_CONNECTED), xbmcgui.NOTIFICATION_INFO)
 		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
 		return
 	try:
-		items = mdblist.get_upnext()
+		items = fetch()
 	except Exception as e:
 		xbmcgui.Dialog().notification(ADDON_NAME, _fmt(S_MDBLIST_LOAD_FAILED, e), xbmcgui.NOTIFICATION_ERROR)
 		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
 		return
 	if not items:
-		xbmcgui.Dialog().notification(ADDON_NAME, _(S_MDBLIST_EMPTY), xbmcgui.NOTIFICATION_INFO)
+		xbmcgui.Dialog().notification(ADDON_NAME, _(empty_string_id), xbmcgui.NOTIFICATION_INFO)
 		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
 		return
 
@@ -1004,7 +1006,18 @@ def list_upnext():
 			add_pick_source(li, dict(url_params, action='episode_streams'))
 		url = '%s?%s' % (BASE_URL, urlencode(url_params))
 		xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=not auto_play)
-	xbmcplugin.endOfDirectory(HANDLE)
+	# Never cached: Up Next is meant to reflect what just changed on MDBList
+	# (a new watchlist add, a check-in from another device...), so Kodi's
+	# usual folder cache would show stale progress here more than it helps.
+	xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+
+def list_upnext():
+	_render_upnext(mdblist.get_upnext, S_MDBLIST_EMPTY)
+
+
+def list_mdblist_watchlist():
+	_render_upnext(mdblist.get_upnext_watchlist, S_MDBLIST_WATCHLIST_EMPTY)
 
 
 def root_menu():
@@ -1019,6 +1032,7 @@ def root_menu():
 	]
 	if _mdblist_ready():
 		items.append((S_MDBLIST_UPNEXT, {'action': 'mdblist_upnext'}))
+		items.append((S_MDBLIST_WATCHLIST, {'action': 'mdblist_watchlist'}))
 	for string_id, params in items:
 		li = xbmcgui.ListItem(label=_(string_id))
 		url = '%s?%s' % (BASE_URL, urlencode(params))
@@ -1146,6 +1160,8 @@ def router():
 		mdblist_disconnect()
 	elif action == 'mdblist_upnext':
 		list_upnext()
+	elif action == 'mdblist_watchlist':
+		list_mdblist_watchlist()
 	elif action in ('movie_streams', 'movie_play_best'):
 		imdb_id = _movie_imdb(params)
 		meta = dict(_scrobble_meta(params), imdbnumber=imdb_id) if imdb_id else {}

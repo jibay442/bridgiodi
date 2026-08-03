@@ -156,6 +156,18 @@ def get_upnext(limit=25):
 	return data.get('items') or []
 
 
+def get_upnext_watchlist(limit=25):
+	"""Watchlisted shows and their next episode - no watch progress required.
+
+	Distinct from get_upnext(): that one only returns shows already IN
+	PROGRESS (at least one watched episode). A show just added to the
+	watchlist with nothing watched yet only shows up here.
+	"""
+	url = '%s/upnext/watchlist?%s' % (API, urlencode({'limit': limit}))
+	data = net.get_json(url, headers=_headers())
+	return data.get('items') or []
+
+
 def _iso_now():
 	return time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
 

@@ -425,3 +425,11 @@ msgstr "Rien en cours sur MDBList"
 msgctxt "#30154"
 msgid "Could not load Up Next: %s"
 msgstr "Chargement du Up Next impossible : %s"
+
+msgctxt "#30155"
+msgid "MDBList watchlist"
+msgstr "Watchlist MDBList"
+
+msgctxt "#30156"
+msgid "Nothing on your MDBList watchlist"
+msgstr "Rien dans ta watchlist MDBList"
