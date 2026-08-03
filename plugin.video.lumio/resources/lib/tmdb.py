@@ -19,9 +19,11 @@ from . import cache, kodi, net
 API = 'https://api.themoviedb.org/3'
 IMAGE_BASE = 'https://image.tmdb.org/t/p/'
 
-# English on purpose: TMDB does no server-side translation fallback, so a
-# localised request returns empty plots on niche titles instead of English ones.
-LANGUAGE = 'en-US'
+# Fallback only: TMDB does no server-side translation fallback, so a
+# localised request returns empty plots on niche titles instead of English
+# ones. details() below re-fetches in English to patch those gaps; browse()
+# uses the local language as-is since list screens don't carry a plot fallback.
+FALLBACK_LANGUAGE = 'en-US'
 
 POSTER_SIZE = 'w500'
 FANART_SIZE = 'w1280'
@@ -55,11 +57,11 @@ def image(path, size=POSTER_SIZE):
 	return '%s%s%s' % (IMAGE_BASE, size, path) if path else ''
 
 
-def _call(path, **params):
+def _call(path, language=None, **params):
 	api_key = kodi.setting('tmdb_api_key').strip()
 	if not api_key:
 		raise NoApiKey('no TMDB api key configured')
-	query = {'api_key': api_key, 'language': LANGUAGE}
+	query = {'api_key': api_key, 'language': language or kodi.tmdb_language()}
 	query.update({k: v for k, v in params.items() if v not in (None, '')})
 	data = net.get_json('%s%s?%s' % (API, path, urlencode(query)))
 	if isinstance(data, dict) and data.get('success') is False:
@@ -127,11 +129,16 @@ def details(media, tmdb_id):
 	if cached:
 		return cached
 
-	if media == 'movie':
-		# Movie details already include imdb_id; TV details do not.
-		row = _call('/movie/%s' % tmdb_id, append_to_response='credits,release_dates')
-	else:
-		row = _call('/tv/%s' % tmdb_id, append_to_response='external_ids,credits,content_ratings')
+	append = 'credits,release_dates' if media == 'movie' else 'external_ids,credits,content_ratings'
+	path = '/movie/%s' % tmdb_id if media == 'movie' else '/tv/%s' % tmdb_id
+	row = _call(path, append_to_response=append)
+
+	if not row.get('overview') and kodi.tmdb_language() != FALLBACK_LANGUAGE:
+		# Niche title with no translation in the local language: patch the
+		# text fields from the English response instead of showing them blank.
+		fallback = _call(path, language=FALLBACK_LANGUAGE, append_to_response=append)
+		row['overview'] = fallback.get('overview') or row.get('overview')
+		row['tagline'] = fallback.get('tagline') or row.get('tagline')
 
 	item = _list_item(row, media)
 	item.update({

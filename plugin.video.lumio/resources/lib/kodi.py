@@ -1,9 +1,31 @@
 # -*- coding: utf-8 -*-
 """Thin wrappers over the Kodi addon API, shared by the library modules."""
+import xbmc
 import xbmcaddon
 import xbmcvfs
 
 ADDON_ID = 'plugin.video.lumio'
+
+# ISO 639-1 codes where TMDB expects a region to actually localise content
+# (a bare code silently falls back to English on TMDB's side for these).
+_TMDB_REGION = {
+	'fr': 'FR', 'es': 'ES', 'de': 'DE', 'it': 'IT', 'pt': 'PT', 'ja': 'JP',
+	'ko': 'KR', 'zh': 'CN', 'ru': 'RU', 'nl': 'NL', 'pl': 'PL', 'tr': 'TR',
+	'sv': 'SE', 'da': 'DK', 'fi': 'FI', 'nb': 'NO', 'cs': 'CZ', 'el': 'GR',
+	'hu': 'HU', 'ro': 'RO', 'th': 'TH', 'ar': 'SA', 'he': 'IL', 'id': 'ID',
+	'uk': 'UA', 'vi': 'VN',
+}
+
+
+def tmdb_language():
+	"""Kodi's configured GUI language, as a TMDB 'xx-XX' locale.
+
+	Falls back to 'en-US' when Kodi's language can't be read or has no
+	known region mapping, since that's TMDB's own effective default.
+	"""
+	code = (xbmc.getLanguage(xbmc.ISO_639_1) or '').strip().lower()
+	region = _TMDB_REGION.get(code)
+	return '%s-%s' % (code, region) if region else 'en-US'
 
 
 def addon():
