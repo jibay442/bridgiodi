@@ -44,6 +44,12 @@ ANIME_BY_LANGUAGE = 1  # broad: any Japanese animation
 # A rating sort with no vote floor returns titles with two votes.
 MIN_VOTES = '200'
 
+# Short enough to catch ranking/catalog drift (popularity and box-office
+# order shift day to day), long enough that flipping back and forth across
+# screens - or revisiting the same folder a minute later - doesn't re-hit
+# TMDB for content that hasn't changed.
+BROWSE_TTL = 6 * 3600
+
 
 class TmdbError(Exception):
 	pass
@@ -188,12 +194,29 @@ def _anime_params():
 	return {'with_genres': ANIME_GENRE, 'with_keywords': ANIME_KEYWORDS}
 
 
+def _browse_cache_key(kind, catalog_id, screen, genre, year):
+	# Every input that can change the result set has to be part of the key,
+	# or a stale answer from a different language/filter combo gets served.
+	return '|'.join(str(part) for part in (
+		kind, catalog_id, screen, genre or '', year or '',
+		kodi.tmdb_language(),
+		kodi.setting_int('anime_filter', ANIME_BY_KEYWORD),
+		kodi.setting_bool('tmdb_include_adult'),
+	))
+
+
 def browse(kind, catalog_id, screen=1, genre=None, year=None):
 	"""(items, has_more) for one screen of a catalogue.
 
 	kind is 'movie', 'tv', 'anime' or 'anime_movie'; catalog_id is 'popular',
 	'box_office', 'top_rated', 'genre' or 'year'.
 	"""
+	namespace = 'tmdb_browse'
+	key = _browse_cache_key(kind, catalog_id, screen, genre, year)
+	cached = cache.get(namespace, key, ttl=BROWSE_TTL)
+	if cached is not None:
+		return cached
+
 	media = 'movie' if kind in ('movie', 'anime_movie') else 'tv'
 	is_anime = kind in ('anime', 'anime_movie')
 	filtered = is_anime or catalog_id in ('genre', 'year', 'box_office')
@@ -202,7 +225,8 @@ def browse(kind, catalog_id, screen=1, genre=None, year=None):
 		# /movie/popular and /tv/top_rated are already vote-weighted and
 		# cheaper than an equivalent discover call, so prefer them.
 		rows, has_more = _pages('/%s/%s' % (media, catalog_id), {}, screen)
-		return [_list_item(row, media) for row in rows], has_more
+		result = [[_list_item(row, media) for row in rows], has_more]
+		return cache.put(namespace, key, result)
 
 	params = _anime_params() if is_anime else {}
 	if catalog_id == 'genre' and genre:
@@ -220,7 +244,8 @@ def browse(kind, catalog_id, screen=1, genre=None, year=None):
 	params['include_adult'] = 'true' if kodi.setting_bool('tmdb_include_adult') else 'false'
 
 	rows, has_more = _pages('/discover/%s' % media, params, screen)
-	return [_list_item(row, media) for row in rows], has_more
+	result = [[_list_item(row, media) for row in rows], has_more]
+	return cache.put(namespace, key, result)
 
 
 def search(media, query, screen=1):
