@@ -481,3 +481,23 @@ msgstr ""
 msgctxt "#30168"
 msgid "Nothing in progress"
 msgstr ""
+
+msgctxt "#30169"
+msgid "Search history"
+msgstr ""
+
+msgctxt "#30170"
+msgid "Search (Movies + Series)"
+msgstr ""
+
+msgctxt "#30171"
+msgid "Search a title"
+msgstr ""
+
+msgctxt "#30172"
+msgid "No search history yet"
+msgstr ""
+
+msgctxt "#30173"
+msgid "All"
+msgstr ""

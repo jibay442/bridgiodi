@@ -481,3 +481,23 @@ msgstr "Reprendre la lecture"
 msgctxt "#30168"
 msgid "Nothing in progress"
 msgstr "Rien en cours"
+
+msgctxt "#30169"
+msgid "Search history"
+msgstr "Historique de recherche"
+
+msgctxt "#30170"
+msgid "Search (Movies + Series)"
+msgstr "Rechercher (Films + Series)"
+
+msgctxt "#30171"
+msgid "Search a title"
+msgstr "Rechercher un titre"
+
+msgctxt "#30172"
+msgid "No search history yet"
+msgstr "Pas encore d'historique de recherche"
+
+msgctxt "#30173"
+msgid "All"
+msgstr "Global"

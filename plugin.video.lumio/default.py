@@ -79,6 +79,11 @@ S_MDBLIST_NO_LISTS = 30159
 S_CACHE_CLEARED = 30160
 S_RESUME_LABEL = 30167
 S_RESUME_EMPTY = 30168
+S_SEARCH_HISTORY = 30169
+S_SEARCH_ALL = 30170
+S_SEARCH_ALL_PROMPT = 30171
+S_SEARCH_HISTORY_EMPTY = 30172
+S_SEARCH_HISTORY_ALL = 30173
 
 
 def _(string_id):
@@ -862,12 +867,63 @@ def _browse(kind, catalog_id, screen=1, genre=None, year=None):
 	render_items(items, next_page)
 
 
+_SEARCH_HISTORY_LIMIT = 15
+
+
+def _search_history(scope):
+	return cache.get('search_history', scope, ttl=0) or []
+
+
+def _remember_search(scope, query):
+	history = [q for q in _search_history(scope) if q.lower() != query.lower()]
+	history.insert(0, query)
+	cache.put('search_history', scope, history[:_SEARCH_HISTORY_LIMIT])
+
+
+def render_mixed_items(items, next_page_params=None):
+	"""Like render_items, but for a list mixing movies and shows (combined
+	search) - target action and card fields are decided per item instead of
+	once for the whole page, and the content type stays generic since Kodi
+	has no single specialised view for a movie/show mix."""
+	if not items:
+		xbmcgui.Dialog().notification(ADDON_NAME, _(S_NO_RESULTS), xbmcgui.NOTIFICATION_INFO)
+		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+		return
+
+	xbmcplugin.setContent(HANDLE, 'videos')
+	auto_play = ADDON.getSetting('auto_play_best') == 'true'
+	for item in items:
+		is_movie = (item.get('media') or 'movie') == 'movie'
+		year = item.get('year') or ''
+		title = item.get('title') or 'Unknown'
+		li = xbmcgui.ListItem(label='%s (%s)' % (title, year) if year else title)
+		apply_info(li, item, 'movie' if is_movie else 'tvshow')
+		target_action = ('movie_play_best' if auto_play else 'movie_streams') if is_movie else 'seasons'
+		is_leaf_movie = is_movie and auto_play
+		if is_leaf_movie:
+			li.setProperty('IsPlayable', 'true')
+		url_params = {'action': target_action, 'tmdb': item.get('tmdb')}
+		if is_movie:
+			url_params.update({'mediatype': 'movie', 'title': title, 'year': year, 'poster': item.get('poster') or ''})
+		if is_leaf_movie:
+			add_pick_source(li, dict(url_params, action='movie_streams'))
+		url = '%s?%s' % (BASE_URL, urlencode(url_params))
+		xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=not is_leaf_movie)
+
+	if next_page_params:
+		li = xbmcgui.ListItem(label=_(S_NEXT_PAGE))
+		url = '%s?%s' % (BASE_URL, urlencode(next_page_params))
+		xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
+	xbmcplugin.endOfDirectory(HANDLE)
+
+
 def search(media, prompt_id, screen=1, query=None):
 	if not query:
 		query = xbmcgui.Dialog().input(_(prompt_id))
 	if not query:
 		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
 		return
+	_remember_search(media, query)
 	try:
 		items, has_more = tmdb.search(media, query, screen=screen)
 	except Exception as e:
@@ -878,6 +934,52 @@ def search(media, prompt_id, screen=1, query=None):
 	if has_more:
 		next_page = {'action': 'search', 'media': media, 'query': query, 'screen': screen + 1}
 	render_items(items, next_page)
+
+
+def search_all(query=None, screen=1):
+	"""Combined movie+series search - also what Kodi's global search calls
+	(plugin://.../?action=search&query=TERM, with no media specified)."""
+	if not query:
+		query = xbmcgui.Dialog().input(_(S_SEARCH_ALL_PROMPT))
+	if not query:
+		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+		return
+	_remember_search('all', query)
+	try:
+		movies, movies_more = tmdb.search('movie', query, screen=screen)
+		shows, shows_more = tmdb.search('tv', query, screen=screen)
+	except Exception as e:
+		_tmdb_error(e, S_SEARCH_FAILED)
+		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+		return
+	next_page = {'action': 'search', 'query': query, 'screen': screen + 1} if (movies_more or shows_more) else None
+	render_mixed_items(movies + shows, next_page)
+
+
+def list_search_history_menu():
+	xbmcplugin.setContent(HANDLE, 'videos')
+	for string_id, scope in ((S_SEARCH_MOVIES, 'movie'), (S_SEARCH_SERIES, 'tv'), (S_SEARCH_HISTORY_ALL, 'all')):
+		li = xbmcgui.ListItem(label=_(string_id))
+		url = '%s?%s' % (BASE_URL, urlencode({'action': 'search_history', 'media': scope}))
+		xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
+	xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+
+def list_search_history(scope):
+	history = _search_history(scope)
+	if not history:
+		xbmcgui.Dialog().notification(ADDON_NAME, _(S_SEARCH_HISTORY_EMPTY), xbmcgui.NOTIFICATION_INFO)
+		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+		return
+	xbmcplugin.setContent(HANDLE, 'videos')
+	for query in history:
+		li = xbmcgui.ListItem(label=query)
+		url_params = {'action': 'search', 'query': query}
+		if scope != 'all':
+			url_params['media'] = scope
+		url = '%s?%s' % (BASE_URL, urlencode(url_params))
+		xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
+	xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
 # Section -> the catalogue entries it offers. Box office is movies only:
@@ -1318,6 +1420,8 @@ def root_menu():
 		(S_ANIME, {'action': 'section', 'kind': 'anime'}),
 		(S_SEARCH_MOVIES, {'action': 'search', 'media': 'movie'}),
 		(S_SEARCH_SERIES, {'action': 'search', 'media': 'tv'}),
+		(S_SEARCH_ALL, {'action': 'search'}),
+		(S_SEARCH_HISTORY, {'action': 'search_history_menu'}),
 	]
 	if _mdblist_ready():
 		items.append((S_MDBLIST_UPNEXT, {'action': 'mdblist_upnext'}))
@@ -1440,9 +1544,19 @@ def router():
 	elif action == 'years':
 		list_years(params.get('kind'))
 	elif action == 'search':
-		media = 'movie' if params.get('media') == 'movie' else 'tv'
-		prompt = S_SEARCH_MOVIES_PROMPT if media == 'movie' else S_SEARCH_SERIES_PROMPT
-		search(media, prompt, _screen(params), params.get('query'))
+		media_param = params.get('media')
+		if media_param in ('movie', 'tv'):
+			prompt = S_SEARCH_MOVIES_PROMPT if media_param == 'movie' else S_SEARCH_SERIES_PROMPT
+			search(media_param, prompt, _screen(params), params.get('query'))
+		else:
+			# No media specified: our own combined menu entry, a history
+			# replay, or Kodi's own global search (plugin://.../?action=
+			# search&query=TERM with no media) all land here.
+			search_all(params.get('query'), _screen(params))
+	elif action == 'search_history_menu':
+		list_search_history_menu()
+	elif action == 'search_history':
+		list_search_history(params.get('media'))
 	elif action == 'play_external':
 		play_external(params)
 	elif action == 'install_th_player':
