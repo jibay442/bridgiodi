@@ -174,7 +174,7 @@
 				</setting>
 				<setting id="sort_priority_1" type="integer" label="30080" help="30081" parent="sort_by_quality">
 					<level>0</level>
-					<default>2</default>
+					<default>0</default>
 					<constraints>
 						<options>
 							<option label="30088">0</option>
@@ -196,7 +196,7 @@
 				</setting>
 				<setting id="sort_priority_2" type="integer" label="30082" help="30081" parent="sort_by_quality">
 					<level>0</level>
-					<default>4</default>
+					<default>0</default>
 					<constraints>
 						<options>
 							<option label="30088">0</option>
@@ -218,7 +218,7 @@
 				</setting>
 				<setting id="sort_priority_3" type="integer" label="30083" help="30081" parent="sort_by_quality">
 					<level>0</level>
-					<default>3</default>
+					<default>0</default>
 					<constraints>
 						<options>
 							<option label="30088">0</option>
@@ -240,7 +240,7 @@
 				</setting>
 				<setting id="sort_priority_4" type="integer" label="30084" help="30081" parent="sort_by_quality">
 					<level>0</level>
-					<default>1</default>
+					<default>0</default>
 					<constraints>
 						<options>
 							<option label="30088">0</option>

@@ -1367,13 +1367,21 @@ def list_mdblist_lists(mode):
 
 def _mdblist_list_card(row):
 	ids = row.get('ids') or {}
-	return {
+	card = {
 		'imdb': ids.get('imdb') or row.get('imdb_id') or '',
 		'tmdb': ids.get('tmdb') or '',
 		'title': row.get('title') or '',
 		'year': str(row.get('release_year') or ''),
 		'is_movie': (row.get('mediatype') or 'movie') == 'movie',
 	}
+	# MDBList's own list-items response carries no poster/plot - only TMDB
+	# has those, and only when a tmdb id came through.
+	if card['tmdb']:
+		details = tmdb_details('movie' if card['is_movie'] else 'tv', card['tmdb'])
+		if details:
+			card['poster'] = details.get('poster') or ''
+			card['fanart'] = details.get('fanart') or ''
+	return card
 
 
 def list_mdblist_list_items(listid):

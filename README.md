@@ -109,7 +109,7 @@ Pour les sous-titres, rien à configurer côté addon : les réglages natifs de 
   | Format audio | Atmos > TrueHD > DTS-HD/DTS-X > EAC3/DD+ > AC3/DTS/AAC |
   | Codec vidéo | AV1 > HEVC/x265 > H.264/x264 |
 
-  La priorité 1 classe en premier ; en cas d'égalité c'est la priorité 2 qui tranche, puis la 3, etc. Les emplacements laissés sur **Non utilisé** sont ignorés, et un critère mis deux fois n'est compté qu'une fois. Par défaut : Résolution > Dolby Vision > HDR > Taille.
+  La priorité 1 classe en premier ; en cas d'égalité c'est la priorité 2 qui tranche, puis la 3, etc. Les emplacements laissés sur **Non utilisé** sont ignorés, et un critère mis deux fois n'est compté qu'une fois. Par défaut, tous les emplacements sont sur **Non utilisé** — le tri par qualité ne fait rien tant que tu n'as pas choisi tes propres priorités.
 
   Ce tri s'applique **à l'intérieur du groupe de chaque fournisseur Stremio** quand plusieurs sont configurés — voir la section sur les fournisseurs multiples plus haut.
 
