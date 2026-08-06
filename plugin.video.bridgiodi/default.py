@@ -1367,20 +1367,24 @@ def list_mdblist_lists(mode):
 
 def _mdblist_list_card(row):
 	ids = row.get('ids') or {}
+	is_movie = (row.get('mediatype') or 'movie') == 'movie'
+	imdb = ids.get('imdb') or row.get('imdb_id') or ''
+	tmdb_id = ids.get('tmdb') or ''
 	card = {
-		'imdb': ids.get('imdb') or row.get('imdb_id') or '',
-		'tmdb': ids.get('tmdb') or '',
-		'title': row.get('title') or '',
-		'year': str(row.get('release_year') or ''),
-		'is_movie': (row.get('mediatype') or 'movie') == 'movie',
+		'imdb': imdb, 'tmdb': tmdb_id,
+		'title': row.get('title') or '', 'year': str(row.get('release_year') or ''),
+		'is_movie': is_movie,
 	}
-	# MDBList's own list-items response carries no poster/plot - only TMDB
-	# has those, and only when a tmdb id came through.
-	if card['tmdb']:
-		details = tmdb_details('movie' if card['is_movie'] else 'tv', card['tmdb'])
+	# MDBList's own list-items response carries only title/year/ids - no
+	# plot, rating, cast, artwork... The full card comes from TMDB, and only
+	# when a tmdb id came through.
+	if tmdb_id:
+		details = tmdb_details('movie' if is_movie else 'tv', tmdb_id)
 		if details:
-			card['poster'] = details.get('poster') or ''
-			card['fanart'] = details.get('fanart') or ''
+			card.update(details)
+			card['imdb'] = imdb or details.get('imdb') or ''
+			card['tmdb'] = tmdb_id
+			card['is_movie'] = is_movie
 	return card
 
 
