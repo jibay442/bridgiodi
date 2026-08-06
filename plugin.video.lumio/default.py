@@ -26,14 +26,10 @@ _SIZE_UNITS = {'G': 1024 ** 3, 'M': 1024 ** 2, 'K': 1024}
 CINEMETA_BASE = 'https://v3-cinemeta.strem.io'
 
 # String ids, see resources/language/*/strings.po
-S_SEARCH_MOVIES = 30036
-S_SEARCH_SERIES = 30037
 S_SETTINGS = 30044
 S_NEXT_PAGE = 30045
 S_SEASON = 30046
 S_SPECIALS = 30047
-S_SEARCH_MOVIES_PROMPT = 30049
-S_SEARCH_SERIES_PROMPT = 30050
 S_NO_MANIFEST = 30051
 S_NO_STREAMS = 30052
 S_NO_RESULTS = 30053
@@ -79,11 +75,9 @@ S_MDBLIST_NO_LISTS = 30159
 S_CACHE_CLEARED = 30160
 S_RESUME_LABEL = 30167
 S_RESUME_EMPTY = 30168
-S_SEARCH_HISTORY = 30169
-S_SEARCH_ALL = 30170
-S_SEARCH_ALL_PROMPT = 30171
-S_SEARCH_HISTORY_EMPTY = 30172
-S_SEARCH_HISTORY_ALL = 30173
+S_SEARCH = 30170
+S_SEARCH_PROMPT = 30171
+S_NEW_SEARCH = 30174
 
 
 def _(string_id):
@@ -917,30 +911,11 @@ def render_mixed_items(items, next_page_params=None):
 	xbmcplugin.endOfDirectory(HANDLE)
 
 
-def search(media, prompt_id, screen=1, query=None):
-	if not query:
-		query = xbmcgui.Dialog().input(_(prompt_id))
-	if not query:
-		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
-		return
-	_remember_search(media, query)
-	try:
-		items, has_more = tmdb.search(media, query, screen=screen)
-	except Exception as e:
-		_tmdb_error(e, S_SEARCH_FAILED)
-		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
-		return
-	next_page = None
-	if has_more:
-		next_page = {'action': 'search', 'media': media, 'query': query, 'screen': screen + 1}
-	render_items(items, next_page)
-
-
 def search_all(query=None, screen=1):
 	"""Combined movie+series search - also what Kodi's global search calls
 	(plugin://.../?action=search&query=TERM, with no media specified)."""
 	if not query:
-		query = xbmcgui.Dialog().input(_(S_SEARCH_ALL_PROMPT))
+		query = xbmcgui.Dialog().input(_(S_SEARCH_PROMPT))
 	if not query:
 		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
 		return
@@ -956,28 +931,17 @@ def search_all(query=None, screen=1):
 	render_mixed_items(movies + shows, next_page)
 
 
-def list_search_history_menu():
+def search_menu():
+	"""Landing screen for the single "Search" entry: a "New search" item,
+	then past queries below it, so reopening it goes straight to your
+	recent searches instead of a keyboard prompt every time."""
 	xbmcplugin.setContent(HANDLE, 'videos')
-	for string_id, scope in ((S_SEARCH_MOVIES, 'movie'), (S_SEARCH_SERIES, 'tv'), (S_SEARCH_HISTORY_ALL, 'all')):
-		li = xbmcgui.ListItem(label=_(string_id))
-		url = '%s?%s' % (BASE_URL, urlencode({'action': 'search_history', 'media': scope}))
-		xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
-	xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
-
-
-def list_search_history(scope):
-	history = _search_history(scope)
-	if not history:
-		xbmcgui.Dialog().notification(ADDON_NAME, _(S_SEARCH_HISTORY_EMPTY), xbmcgui.NOTIFICATION_INFO)
-		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
-		return
-	xbmcplugin.setContent(HANDLE, 'videos')
-	for query in history:
+	li = xbmcgui.ListItem(label=_(S_NEW_SEARCH))
+	url = '%s?%s' % (BASE_URL, urlencode({'action': 'search'}))
+	xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
+	for query in _search_history('all'):
 		li = xbmcgui.ListItem(label=query)
-		url_params = {'action': 'search', 'query': query}
-		if scope != 'all':
-			url_params['media'] = scope
-		url = '%s?%s' % (BASE_URL, urlencode(url_params))
+		url = '%s?%s' % (BASE_URL, urlencode({'action': 'search', 'query': query}))
 		xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
 	xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
@@ -1418,10 +1382,7 @@ def root_menu():
 		(S_MOVIES, {'action': 'section', 'kind': 'movie'}),
 		(S_SERIES, {'action': 'section', 'kind': 'tv'}),
 		(S_ANIME, {'action': 'section', 'kind': 'anime'}),
-		(S_SEARCH_MOVIES, {'action': 'search', 'media': 'movie'}),
-		(S_SEARCH_SERIES, {'action': 'search', 'media': 'tv'}),
-		(S_SEARCH_ALL, {'action': 'search'}),
-		(S_SEARCH_HISTORY, {'action': 'search_history_menu'}),
+		(S_SEARCH, {'action': 'search_menu'}),
 	]
 	if _mdblist_ready():
 		items.append((S_MDBLIST_UPNEXT, {'action': 'mdblist_upnext'}))
@@ -1543,20 +1504,12 @@ def router():
 		list_genres(params.get('kind'))
 	elif action == 'years':
 		list_years(params.get('kind'))
+	elif action == 'search_menu':
+		search_menu()
 	elif action == 'search':
-		media_param = params.get('media')
-		if media_param in ('movie', 'tv'):
-			prompt = S_SEARCH_MOVIES_PROMPT if media_param == 'movie' else S_SEARCH_SERIES_PROMPT
-			search(media_param, prompt, _screen(params), params.get('query'))
-		else:
-			# No media specified: our own combined menu entry, a history
-			# replay, or Kodi's own global search (plugin://.../?action=
-			# search&query=TERM with no media) all land here.
-			search_all(params.get('query'), _screen(params))
-	elif action == 'search_history_menu':
-		list_search_history_menu()
-	elif action == 'search_history':
-		list_search_history(params.get('media'))
+		# Our own "New search"/history entries, and Kodi's own global search
+		# (plugin://.../?action=search&query=TERM) both land here.
+		search_all(params.get('query'), _screen(params))
 	elif action == 'play_external':
 		play_external(params)
 	elif action == 'install_th_player':
