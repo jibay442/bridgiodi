@@ -538,13 +538,27 @@ def _card(params, scrobble_meta=None):
 	return card
 
 
+# How many top-ranked candidates get HEAD-probed before giving up and
+# falling back to the highest-ranked one regardless (a false-negative probe
+# is more likely than every single one of them being truly dead).
+_STREAM_PROBE_LIMIT = 5
+
+
+def _first_working_stream(streams):
+	for stream in streams[:_STREAM_PROBE_LIMIT]:
+		url = stream.get('url')
+		if url and net.check_url(url):
+			return url
+	return streams[0].get('url') if streams else None
+
+
 def play_best(kodi_type, video_id, scrobble_meta=None, resume=None, card=None):
 	streams = playable_streams(kodi_type, video_id)
 	if not streams:
 		xbmcgui.Dialog().notification(ADDON_NAME, _(S_NO_STREAMS), xbmcgui.NOTIFICATION_INFO)
 		xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
 		return
-	resolve_and_play(streams[0]['url'], scrobble_meta, resume, card)
+	resolve_and_play(_first_working_stream(streams), scrobble_meta, resume, card)
 
 
 def list_streams(kodi_type, video_id, scrobble_meta=None, card=None):
@@ -1380,14 +1394,16 @@ def play_external(params):
 	# one-click playback from TMDb Helper.
 	auto = (ADDON.getSetting('external_auto_play') == 'true'
 	        or ADDON.getSetting('auto_play_best') == 'true')
-	chosen = 0
-	if not auto:
+	if auto:
+		url = _first_working_stream(streams)
+	else:
 		labels = [stream_display(stream)[0] for stream in streams]
 		chosen = xbmcgui.Dialog().select(_(S_PICK_SOURCE), labels)
 		if chosen < 0:
 			xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
 			return
-	resolve_and_play(streams[chosen]['url'], meta, None, card)
+		url = streams[chosen]['url']
+	resolve_and_play(url, meta, None, card)
 
 
 def _movie_imdb(params):

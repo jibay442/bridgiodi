@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """JSON over HTTP, stdlib only. Shared by the plugin and the background service."""
 import json
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
@@ -35,6 +35,22 @@ def post_json(url, payload, timeout=TIMEOUT, headers=None):
 		if not raw:
 			raise
 	return json.loads(raw or '{}')
+
+
+def check_url(url, timeout=6):
+	"""True if url responds without a client/server error.
+
+	Used to probe a "best" stream before committing to it: a top-ranked
+	source is sometimes a dead/expired signed link on the provider's CDN,
+	and a plain HEAD request is far cheaper than letting Kodi's player find
+	that out after the fact with no fallback.
+	"""
+	req = Request(url, method='HEAD', headers={'User-Agent': UA})
+	try:
+		with urlopen(req, timeout=timeout) as resp:
+			return 200 <= resp.status < 400
+	except (HTTPError, URLError):
+		return False
 
 
 def post_form(url, fields, timeout=TIMEOUT, headers=None):
