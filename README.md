@@ -211,7 +211,3 @@ Deux détails qui ont leur importance :
 2. Copie le dossier `plugin.video.bridgiodi/` dans le répertoire `addons` de ton Kodi (ou installe-le via "Installer depuis un fichier zip").
 3. Va dans les réglages de l'addon et renseigne au moins une URL de manifest Stremio personnelle (onglet *Addons Stremio*), ainsi que ta clé API TMDB (onglet *Catalogue (TMDB)*).
 4. Profite !
-
-## Crédits
-
-Le logo de l'addon (`resources/icon.png`) est celui de [mylumio.tv](https://mylumio.tv), l'addon Stremio qui a inspiré ce projet — à remplacer si tu veux une identité visuelle propre à Bridgiodi maintenant que l'addon supporte plusieurs fournisseurs.
