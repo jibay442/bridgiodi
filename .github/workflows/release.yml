@@ -1,0 +1,59 @@
+name: Build Kodi repo & release
+
+# Runs on every push to main, but only actually publishes anything when the
+# addon.xml version bumped: git tags act as the "already released" marker,
+# so pushing docs/CI tweaks to main without a version bump is a no-op here.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read addon version
+        id: addon
+        run: |
+          VERSION=$(python3 -c "import xml.etree.ElementTree as ET; print(ET.parse('plugin.video.bridgiodi/addon.xml').getroot().get('version'))")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Check if this version was already released
+        id: check
+        run: |
+          if git rev-parse "v${{ steps.addon.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build repository payload (zips + addons.xml)
+        if: steps.check.outputs.exists == 'false'
+        run: python3 .github/scripts/generate_repo.py
+
+      - name: Publish to GitHub Pages (gh-pages branch)
+        if: steps.check.outputs.exists == 'false'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./zips
+          keep_files: false
+
+      - name: Extract changelog for this version
+        if: steps.check.outputs.exists == 'false'
+        run: python3 .github/scripts/extract_changelog.py "${{ steps.addon.outputs.version }}" > release_notes.md
+
+      - name: Create GitHub Release
+        if: steps.check.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.addon.outputs.version }}
+          name: Bridgiodi ${{ steps.addon.outputs.version }}
+          body_path: release_notes.md
+          files: zips/plugin.video.bridgiodi/plugin.video.bridgiodi-${{ steps.addon.outputs.version }}.zip

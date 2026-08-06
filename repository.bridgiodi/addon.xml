@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+	The one-time install for users: this tiny addon just tells Kodi where to
+	find addons.xml/addons.xml.md5 and the zips (published to the gh-pages
+	branch by .github/workflows/release.yml). Kodi then auto-updates
+	plugin.video.bridgiodi from there without any manual zip installs.
+
+	If the GitHub repo is ever renamed, the URLs below need to follow -
+	GitHub redirects the old Pages URL for a while, but not forever.
+-->
+<addon id="repository.bridgiodi" name="Bridgiodi Repository" version="1.0.0" provider-name="jibay442">
+	<extension point="xbmc.addon.repository" name="Bridgiodi Repository">
+		<dir>
+			<info compressed="false">https://jibay442.github.io/plugin.video.lumio/addons.xml</info>
+			<checksum>https://jibay442.github.io/plugin.video.lumio/addons.xml.md5</checksum>
+			<datadir zip="true">https://jibay442.github.io/plugin.video.lumio/</datadir>
+		</dir>
+	</extension>
+	<extension point="xbmc.addon.metadata">
+		<summary lang="en_GB">Auto-update repository for the Bridgiodi Kodi addon</summary>
+		<description lang="en_GB">Install this once to get Bridgiodi and its future updates through Kodi's normal addon-update mechanism, instead of reinstalling a zip by hand every release.</description>
+		<platform>all</platform>
+		<license>MIT</license>
+		<assets>
+			<icon>resources/icon.png</icon>
+		</assets>
+	</extension>
+</addon>
