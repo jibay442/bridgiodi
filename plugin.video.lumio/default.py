@@ -930,9 +930,10 @@ def open_settings():
 
 
 def clear_cache():
-	# The MDBList auth token lives in the same cache mechanism but isn't
-	# really a cache - clearing it here would silently log the user out.
-	removed = cache.clear_all(exclude_namespaces=('mdblist_auth',))
+	# The MDBList auth token and saved resume points live in the same cache
+	# mechanism but aren't really a cache - clearing them here would silently
+	# log the user out and reset playback progress.
+	removed = cache.clear_all(exclude_namespaces=('mdblist_auth', _RESUME_NAMESPACE))
 	xbmcgui.Dialog().notification(ADDON_NAME, _fmt(S_CACHE_CLEARED, removed), xbmcgui.NOTIFICATION_INFO)
 
 
