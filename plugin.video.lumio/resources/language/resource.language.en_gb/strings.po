@@ -473,3 +473,11 @@ msgstr ""
 msgctxt "#30166"
 msgid "Switches to the audio track matching TMDB's original language right after playback starts, instead of trusting the file's own \"default\" flag - which is routinely set on a dub, not the original. Requires TMDB to know the title (a TMDB id must have been resolved)."
 msgstr ""
+
+msgctxt "#30167"
+msgid "Resume playback"
+msgstr ""
+
+msgctxt "#30168"
+msgid "Nothing in progress"
+msgstr ""

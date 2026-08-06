@@ -77,6 +77,8 @@ S_MDBLIST_MY_LISTS = 30157
 S_MDBLIST_LIKED_LISTS = 30158
 S_MDBLIST_NO_LISTS = 30159
 S_CACHE_CLEARED = 30160
+S_RESUME_LABEL = 30167
+S_RESUME_EMPTY = 30168
 
 
 def _(string_id):
@@ -746,7 +748,21 @@ def _track_playback(scrobble_meta, card=None):
 			if fraction >= _RESUME_DONE_THRESHOLD:
 				cache.put(_RESUME_NAMESPACE, key, None)
 			else:
-				cache.put(_RESUME_NAMESPACE, key, {'position': position, 'total': total})
+				# Enough of the source item is snapshotted here that the
+				# "Resume playback" folder can render a listing without
+				# re-resolving anything from TMDB/Cinemeta.
+				cache.put(_RESUME_NAMESPACE, key, {
+					'position': position, 'total': total,
+					'mediatype': scrobble_meta.get('mediatype') or 'movie',
+					'imdbnumber': scrobble_meta.get('imdbnumber'),
+					'title': scrobble_meta.get('title') or (card or {}).get('title') or '',
+					'tvshowtitle': scrobble_meta.get('tvshowtitle') or '',
+					'season': scrobble_meta.get('season'),
+					'episode': scrobble_meta.get('episode'),
+					'year': scrobble_meta.get('year') or (card or {}).get('year') or '',
+					'poster': (card or {}).get('poster') or scrobble_meta.get('poster') or '',
+					'tmdb': (card or {}).get('tmdb') or '',
+				})
 
 	if not mdblist_sync or fraction < mdblist.WATCHED_THRESHOLD:
 		return
@@ -859,8 +875,55 @@ _SECTIONS = {
 }
 
 
+def list_resume(kind):
+	"""Movies (kind='movie') or episodes (kind='tv') with a saved local
+	resume point, newest-saved first. Each entry resumes straight into
+	playback - resolve_and_play auto-fills the resume position from the
+	same cache entry this list reads."""
+	wanted_mediatype = 'movie' if kind == 'movie' else 'episode'
+	entries = cache.all_entries(_RESUME_NAMESPACE, ttl=0)
+	rows = [(key, value) for key, value in entries.items()
+	        if value and value.get('mediatype') == wanted_mediatype and value.get('total')]
+	if not rows:
+		xbmcgui.Dialog().notification(ADDON_NAME, _(S_RESUME_EMPTY), xbmcgui.NOTIFICATION_INFO)
+		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+		return
+
+	xbmcplugin.setContent(HANDLE, 'movies' if kind == 'movie' else 'episodes')
+	is_movie = kind == 'movie'
+	for _key, row in rows:
+		percent = int(row['position'] / row['total'] * 100)
+		if is_movie:
+			label = '%s (%d%%)' % (row.get('title') or '', percent)
+		else:
+			label = '%s - %sx%02d (%d%%)' % (
+				row.get('tvshowtitle') or row.get('title') or '', row.get('season'), row.get('episode') or 0, percent)
+		li = xbmcgui.ListItem(label=label)
+		apply_info(li, dict(row, imdb=row.get('imdbnumber')), 'movie' if is_movie else 'episode')
+		li.setProperty('IsPlayable', 'true')
+		url_params = {
+			'action': 'movie_play_best' if is_movie else 'episode_play_best',
+			'imdb': row.get('imdbnumber'), 'tmdb': row.get('tmdb') or '',
+			'title': row.get('title') or '', 'year': row.get('year') or '',
+			'mediatype': wanted_mediatype, 'imdbnumber': row.get('imdbnumber'),
+		}
+		if not is_movie:
+			url_params.update({
+				'season': row.get('season'), 'episode': row.get('episode'),
+				'tvshowtitle': row.get('tvshowtitle') or '',
+			})
+		add_pick_source(li, dict(url_params, action='movie_streams' if is_movie else 'episode_streams'))
+		url = '%s?%s' % (BASE_URL, urlencode(url_params))
+		xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=False)
+	xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+
 def list_section(kind):
 	xbmcplugin.setContent(HANDLE, 'videos')
+	if kind in ('movie', 'tv') and _local_resume_enabled():
+		li = xbmcgui.ListItem(label=_(S_RESUME_LABEL))
+		url = '%s?%s' % (BASE_URL, urlencode({'action': 'resume_list', 'kind': kind}))
+		xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
 	for string_id, catalog_id in _SECTIONS.get(kind, ()):
 		li = xbmcgui.ListItem(label=_(string_id))
 		url = '%s?%s' % (BASE_URL, urlencode({'action': 'catalog', 'kind': kind, 'catalog': catalog_id}))
@@ -1351,6 +1414,8 @@ def router():
 	action = params.get('action')
 	if action == 'section':
 		list_section(params.get('kind'))
+	elif action == 'resume_list':
+		list_resume(params.get('kind'))
 	elif action == 'catalog':
 		_browse(params.get('kind'), params.get('catalog'), _screen(params),
 		        params.get('genre'), params.get('year'))
