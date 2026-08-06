@@ -32,13 +32,12 @@ Kodi addon that plays streams from one or more stream-only Stremio addons direct
 - Optional original-language audio forcing (overrides a file's own "default" flag, which is often a dub).
 - Optional [MDBList](https://mdblist.com) integration: Up Next, watchlist, custom/liked lists, watched-status sync.
 - TMDb Helper player integration (for Trakt-backed "continue watching").
-- `script.trakt` works automatically on top — no Bridgiodi-side config needed.
+- For Trakt watched-status/resume sync: install the official **Trakt** addon (`script.trakt`), or use Bridgiodi as the player behind **TMDb Helper**, which has its own Trakt integration.
 
 ## Known limitations
 
 - No torrent/magnet (`infoHash`) support — direct HTTP streams only.
-- No native Trakt integration (Trakt app creation is VIP-only now); use `script.trakt` instead.
-- 5 manifest slots max (Kodi settings can't hold a dynamic list).
+- No native Trakt integration (Trakt app creation is VIP-only now) — see above for alternatives.
 
 ## Manual install (without the repository)
 
