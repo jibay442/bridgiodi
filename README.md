@@ -1,14 +1,17 @@
 # Bridge Stremio Kodi
 
-Kodi addon that plays streams from one or more stream-only Stremio addons (e.g. [Lumio.tv](https://mylumio.tv)) directly in Kodi, no Stremio app required.
+Kodi addon that plays streams from one or more stream-only Stremio addons directly in Kodi, no Stremio app required.
 
-## Kodi repository
+## Installing from the Kodi repository
 
-Add this URL as a Kodi file source, then install `repository.bridgiodi` from it (*Add-ons → Install from zip file*). Bridgiodi then updates automatically through Kodi's normal update mechanism.
+1. In Kodi, go to *Settings → Media → File manager → Add source*, and add:
 
-```
-https://jibay442.github.io/bridgiodi/
-```
+   ```
+   https://jibay442.github.io/bridgiodi/
+   ```
+
+2. Go to *Add-ons → Install from zip file*, pick the source you just added, and install `repository.bridgiodi-1.0.0.zip`.
+3. Go to *Install from repository → Bridgiodi Repository*, and install **Bridgiodi**.
 
 ## Requirements
 
