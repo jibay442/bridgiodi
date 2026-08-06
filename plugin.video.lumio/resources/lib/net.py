@@ -42,10 +42,12 @@ def check_url(url, timeout=6):
 
 	Used to probe a "best" stream before committing to it: a top-ranked
 	source is sometimes a dead/expired signed link on the provider's CDN,
-	and a plain HEAD request is far cheaper than letting Kodi's player find
-	that out after the fact with no fallback.
+	and a cheap request is far better than letting Kodi's player find that
+	out after the fact with no fallback. Uses a ranged GET rather than HEAD:
+	stream CDNs commonly reject HEAD outright (405) while still serving a
+	normal GET, which would otherwise make every candidate look dead.
 	"""
-	req = Request(url, method='HEAD', headers={'User-Agent': UA})
+	req = Request(url, headers={'User-Agent': UA, 'Range': 'bytes=0-1'})
 	try:
 		with urlopen(req, timeout=timeout) as resp:
 			return 200 <= resp.status < 400
