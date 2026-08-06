@@ -624,12 +624,82 @@ def resolve_and_play(url, scrobble_meta=None, resume=None, card=None):
 			li.setProperty('ResumeTime', str(position))
 			li.setProperty('TotalTime', str(total))
 	xbmcplugin.setResolvedUrl(HANDLE, True, li)
-	_track_playback(scrobble_meta)
+	_track_playback(scrobble_meta, card)
 
 
-def _track_playback(scrobble_meta):
+# ISO 639-1 -> tokens Kodi's getAvailableAudioStreams() might return for that
+# language (2-letter, common ISO 639-2 variants, English name). Kodi surfaces
+# whatever the file's own container tags say, which varies by muxer - matching
+# loosely against several plausible spellings is more reliable than picking one.
+_AUDIO_LANGUAGE_ALIASES = {
+	'en': ('en', 'eng', 'english'), 'fr': ('fr', 'fre', 'fra', 'french'),
+	'ja': ('ja', 'jpn', 'japanese'), 'ko': ('ko', 'kor', 'korean'),
+	'de': ('de', 'ger', 'deu', 'german'), 'es': ('es', 'spa', 'spanish'),
+	'it': ('it', 'ita', 'italian'), 'pt': ('pt', 'por', 'portuguese'),
+	'zh': ('zh', 'chi', 'zho', 'chinese', 'mandarin', 'cantonese'),
+	'ru': ('ru', 'rus', 'russian'), 'hi': ('hi', 'hin', 'hindi'),
+	'ar': ('ar', 'ara', 'arabic'), 'nl': ('nl', 'dut', 'nld', 'dutch'),
+	'sv': ('sv', 'swe', 'swedish'), 'da': ('da', 'dan', 'danish'),
+	'nb': ('nb', 'no', 'nor', 'norwegian'), 'fi': ('fi', 'fin', 'finnish'),
+	'pl': ('pl', 'pol', 'polish'), 'tr': ('tr', 'tur', 'turkish'),
+	'th': ('th', 'tha', 'thai'), 'he': ('he', 'heb', 'hebrew'),
+	'cs': ('cs', 'cze', 'ces', 'czech'), 'el': ('el', 'gre', 'ell', 'greek'),
+	'hu': ('hu', 'hun', 'hungarian'), 'ro': ('ro', 'rum', 'ron', 'romanian'),
+	'id': ('id', 'ind', 'indonesian'), 'uk': ('uk', 'ukr', 'ukrainian'),
+	'vi': ('vi', 'vie', 'vietnamese'),
+}
+
+
+def _match_audio_stream_index(streams, original_language):
+	aliases = _AUDIO_LANGUAGE_ALIASES.get((original_language or '').lower())
+	if not aliases:
+		return None
+	for index, label in enumerate(streams or []):
+		if (label or '').strip().lower() in aliases:
+			return index
+	return None
+
+
+def _apply_original_audio(card):
+	"""Switches to the original-language audio track, once it's known.
+
+	A "default" flag baked into the file is not reliable evidence of the
+	original language - a dub is routinely flagged default - so this reads
+	TMDB's own original_language instead of trusting the file.
+	"""
+	original_language = (card or {}).get('original_language')
+	if not original_language:
+		return
+	monitor = xbmc.Monitor()
+	player = xbmc.Player()
+	streams = []
+	# Stream info isn't necessarily ready the instant playback starts -
+	# give it a couple of seconds before giving up.
+	for _i in range(15):
+		try:
+			streams = player.getAvailableAudioStreams()
+		except Exception:
+			streams = []
+		if streams:
+			break
+		if monitor.waitForAbort(0.4):
+			return
+	index = _match_audio_stream_index(streams, original_language)
+	if index is None:
+		log_debug('force_original_audio: no %s track among %r' % (original_language, streams))
+		return
+	try:
+		player.setAudioStream(index)
+		log_debug('force_original_audio: switched to stream %d (%s) out of %r' % (index, original_language, streams))
+	except Exception as e:
+		log('force_original_audio: setAudioStream failed: %s' % e)
+
+
+def _track_playback(scrobble_meta, card=None):
 	"""Blocks until this playback ends, then saves a local resume point and/or
-	reports it watched to MDBList - whichever of the two is turned on.
+	reports it watched to MDBList - whichever of the two is turned on. Also
+	forces the original-language audio track right after playback starts,
+	if that setting is on.
 
 	Runs in-process rather than via a background service - this addon has
 	none, and adding one solely for this would mean an addon.xml change and
@@ -639,7 +709,8 @@ def _track_playback(scrobble_meta):
 	"""
 	local_resume = bool(scrobble_meta) and _local_resume_enabled()
 	mdblist_sync = bool(scrobble_meta) and scrobble_meta.get('imdbnumber') and _mdblist_ready()
-	if not local_resume and not mdblist_sync:
+	force_audio = ADDON.getSetting('force_original_audio') == 'true' and bool((card or {}).get('original_language'))
+	if not local_resume and not mdblist_sync and not force_audio:
 		return
 
 	monitor = xbmc.Monitor()
@@ -650,6 +721,11 @@ def _track_playback(scrobble_meta):
 		if player.isPlayingVideo():
 			break
 	else:
+		return
+
+	if force_audio:
+		_apply_original_audio(card)
+	if not local_resume and not mdblist_sync:
 		return
 
 	position, total = 0, 0
