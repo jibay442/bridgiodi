@@ -72,9 +72,44 @@ def main():
 	with open(addons_xml_path + '.md5', 'w', encoding='utf-8') as f:
 		f.write(digest)
 
+	write_index_html(built)
+
 	print('addons.xml.md5: %s' % digest)
 	for addon_id, version, zip_path in built:
 		print('%s %s -> %s' % (addon_id, version, os.path.relpath(zip_path, REPO_ROOT)))
+
+
+def write_index_html(built):
+	"""A plain download page at the Pages root - otherwise hitting the bare
+	repo URL with no filename 404s, since there's no directory listing."""
+	repo_row = next((b for b in built if b[0] == 'repository.bridgiodi'), None)
+	other_rows = [b for b in built if b[0] != 'repository.bridgiodi']
+
+	def link(addon_id, version, zip_path):
+		href = '%s/%s' % (addon_id, os.path.basename(zip_path))
+		return '<li><a href="%s">%s %s</a></li>' % (href, addon_id, version)
+
+	repo_section = ''
+	if repo_row:
+		repo_section = '<p><a href="%s/%s">Download the Kodi repository zip</a> (install this once in Kodi).</p>' % (
+			repo_row[0], os.path.basename(repo_row[2]))
+
+	other_section = ''
+	if other_rows:
+		other_section = '<ul>%s</ul>' % ''.join(link(*row) for row in other_rows)
+
+	html = """<!doctype html>
+<html><head><meta charset="utf-8"><title>Bridgiodi Kodi repository</title></head>
+<body>
+<h1>Bridgiodi Kodi repository</h1>
+%s
+%s
+<p><a href="addons.xml">addons.xml</a></p>
+</body></html>
+""" % (repo_section, other_section)
+
+	with open(os.path.join(OUTPUT_DIR, 'index.html'), 'w', encoding='utf-8') as f:
+		f.write(html)
 
 
 if __name__ == '__main__':
