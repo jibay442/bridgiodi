@@ -3,16 +3,28 @@ name: Build Kodi repo & release
 # Runs on every push to main, but only actually publishes anything when the
 # addon.xml version bumped: git tags act as the "already released" marker,
 # so pushing docs/CI tweaks to main without a version bump is a no-op here.
+# workflow_dispatch lets us force a rebuild/republish of the CURRENT version
+# on demand (e.g. after a Pages config fix), bypassing that same-version skip.
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -27,7 +39,9 @@ jobs:
       - name: Check if this version was already released
         id: check
         run: |
-          if git rev-parse "v${{ steps.addon.outputs.version }}" >/dev/null 2>&1; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          elif git rev-parse "v${{ steps.addon.outputs.version }}" >/dev/null 2>&1; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
@@ -37,19 +51,22 @@ jobs:
         if: steps.check.outputs.exists == 'false'
         run: python3 .github/scripts/generate_repo.py
 
-      - name: Publish to GitHub Pages (gh-pages branch)
+      - name: Upload Pages artifact
         if: steps.check.outputs.exists == 'false'
-        uses: peaceiris/actions-gh-pages@v3
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./zips
-          keep_files: false
+          path: ./zips
+
+      - name: Deploy to GitHub Pages
+        if: steps.check.outputs.exists == 'false'
+        id: deployment
+        uses: actions/deploy-pages@v4
 
       - name: Extract changelog for this version
         if: steps.check.outputs.exists == 'false'
         run: python3 .github/scripts/extract_changelog.py "${{ steps.addon.outputs.version }}" > release_notes.md
 
-      - name: Create GitHub Release
+      - name: Create or update GitHub Release
         if: steps.check.outputs.exists == 'false'
         uses: softprops/action-gh-release@v2
         with:
