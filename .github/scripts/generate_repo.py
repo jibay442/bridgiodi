@@ -40,7 +40,17 @@ def zip_addon(addon_id, version):
 	# make_archive appends the .zip suffix itself; root_dir/base_dir together
 	# make the zip's internal paths start with "<addon_id>/...", which is
 	# exactly the layout Kodi expects when it unpacks an update.
-	return shutil.make_archive(zip_base, 'zip', root_dir=REPO_ROOT, base_dir=addon_id)
+	zip_path = shutil.make_archive(zip_base, 'zip', root_dir=REPO_ROOT, base_dir=addon_id)
+
+	# GitHub Pages has no directory listing, and Kodi's "install from zip"
+	# browser needs *something* to list when it navigates into this folder -
+	# without this, browsing in Kodi shows an empty folder even though the
+	# zip is right there.
+	zip_name = os.path.basename(zip_path)
+	with open(os.path.join(dest_dir, 'index.html'), 'w', encoding='utf-8') as f:
+		f.write('<!doctype html>\n<html><body><a href="%s">%s</a></body></html>\n' % (zip_name, zip_name))
+
+	return zip_path
 
 
 def main():
@@ -82,19 +92,28 @@ def main():
 def write_index_html(built):
 	"""Bare download page at the Pages root - otherwise hitting the bare
 	repo URL with no filename 404s, since there's no directory listing.
-	Just the one link users actually need: the repository zip."""
+
+	Links to a flat copy of the repository zip placed right at the Pages
+	root (separate from the <id>/<id>-<version>.zip copy Kodi's own
+	auto-update mechanism relies on via addons.xml's datadir). Kodi's
+	"install from zip" folder browser only recognises direct children of
+	the page it's looking at - a link into a subfolder just shows empty
+	when it navigates there, since GitHub Pages has no real directory
+	listing - so the one link users click by hand has to be flat.
+	"""
 	repo_row = next((b for b in built if b[0] == 'repository.bridgiodi'), None)
-	href = ''
+	zip_name = ''
 	if repo_row:
-		addon_id, _version, zip_path = repo_row
-		href = '%s/%s' % (addon_id, os.path.basename(zip_path))
+		_addon_id, _version, zip_path = repo_row
+		zip_name = os.path.basename(zip_path)
+		shutil.copy2(zip_path, os.path.join(OUTPUT_DIR, zip_name))
 
 	html = """<!doctype html>
 <html><head><meta charset="utf-8"><title>Bridgiodi</title></head>
 <body>
 <a href="%s">%s</a>
 </body></html>
-""" % (href, os.path.basename(href))
+""" % (zip_name, zip_name)
 
 	with open(os.path.join(OUTPUT_DIR, 'index.html'), 'w', encoding='utf-8') as f:
 		f.write(html)
