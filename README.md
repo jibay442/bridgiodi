@@ -4,12 +4,11 @@ Kodi addon that plays streams from one or more stream-only Stremio addons (e.g. 
 
 ## Kodi repository
 
-Install `repository.bridgiodi` once, then Bridgiodi updates automatically through Kodi's normal update mechanism.
+Add this URL as a Kodi file source, then install `repository.bridgiodi` from it (*Add-ons → Install from zip file*). Bridgiodi then updates automatically through Kodi's normal update mechanism.
 
-- Repo root: https://jibay442.github.io/Bridgiodi/
-- Repository zip: https://jibay442.github.io/Bridgiodi/repository.bridgiodi/repository.bridgiodi-1.0.0.zip
-
-Install via *Add-ons → Install from zip file* with that zip.
+```
+https://jibay442.github.io/bridgiodi/
+```
 
 ## Requirements
 
