@@ -457,3 +457,11 @@ msgstr "Vider le cache"
 msgctxt "#30162"
 msgid "Deletes cached TMDB and Cinemeta data (catalog pages, details, episode lists), forcing a refetch next time. Does not disconnect your MDBList account."
 msgstr "Supprime les donnees TMDB et Cinemeta en cache (pages de catalogue, fiches, listes d'episodes), forcant un rechargement la prochaine fois. Ne deconnecte pas ton compte MDBList."
+
+msgctxt "#30163"
+msgid "Remember playback position"
+msgstr "Se souvenir de la position de lecture"
+
+msgctxt "#30164"
+msgid "Resumes movies and episodes where you left off, even without a Kodi library entry, TMDb Helper or Trakt. Turn off if you'd rather rely on those instead."
+msgstr "Reprend les films et episodes ou tu les as laisses, meme sans entree dans la bibliotheque Kodi, TMDb Helper ou Trakt. Desactive si tu preferes t'appuyer sur eux."

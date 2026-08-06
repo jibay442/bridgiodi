@@ -577,6 +577,36 @@ def list_streams(kodi_type, video_id, scrobble_meta=None, card=None):
 	xbmcplugin.endOfDirectory(HANDLE)
 
 
+_RESUME_NAMESPACE = 'resume'
+# Past this fraction, a saved position isn't worth resuming from - close
+# enough to the end that starting over (or letting mdblist mark it watched)
+# is more useful than seeking back into the credits.
+_RESUME_DONE_THRESHOLD = 0.9
+
+
+def _resume_key(scrobble_meta):
+	imdb = scrobble_meta.get('imdbnumber')
+	if not imdb:
+		return None
+	if scrobble_meta.get('mediatype') == 'episode':
+		return '%s:%s:%s' % (imdb, scrobble_meta.get('season'), scrobble_meta.get('episode'))
+	return imdb
+
+
+def _local_resume_enabled():
+	return ADDON.getSetting('local_resume') == 'true'
+
+
+def _load_resume(scrobble_meta):
+	if not scrobble_meta or not _local_resume_enabled():
+		return None
+	key = _resume_key(scrobble_meta)
+	saved = cache.get(_RESUME_NAMESPACE, key, ttl=0) if key else None
+	if not saved or not saved.get('total'):
+		return None
+	return saved['position'], saved['total']
+
+
 def resolve_and_play(url, scrobble_meta=None, resume=None, card=None):
 	headers = 'User-Agent=%s' % quote(_UA)
 	li = xbmcgui.ListItem(path='%s|%s' % (url, headers))
@@ -586,17 +616,20 @@ def resolve_and_play(url, scrobble_meta=None, resume=None, card=None):
 		# playing item.
 		card = card if card is not None else dict(scrobble_meta)
 		apply_info(li, card, card.get('mediatype') or 'video')
+	if resume is None:
+		resume = _load_resume(scrobble_meta)
 	if resume:
 		position, total = resume
 		if total:
 			li.setProperty('ResumeTime', str(position))
 			li.setProperty('TotalTime', str(total))
 	xbmcplugin.setResolvedUrl(HANDLE, True, li)
-	_track_mdblist_watched(scrobble_meta)
+	_track_playback(scrobble_meta)
 
 
-def _track_mdblist_watched(scrobble_meta):
-	"""Blocks until this playback ends, then reports it watched to MDBList.
+def _track_playback(scrobble_meta):
+	"""Blocks until this playback ends, then saves a local resume point and/or
+	reports it watched to MDBList - whichever of the two is turned on.
 
 	Runs in-process rather than via a background service - this addon has
 	none, and adding one solely for this would mean an addon.xml change and
@@ -604,7 +637,9 @@ def _track_mdblist_watched(scrobble_meta):
 	alive for the whole runtime of the video (Kodi does not require a
 	resolver script to exit right after setResolvedUrl).
 	"""
-	if not scrobble_meta or not scrobble_meta.get('imdbnumber') or not _mdblist_ready():
+	local_resume = bool(scrobble_meta) and _local_resume_enabled()
+	mdblist_sync = bool(scrobble_meta) and scrobble_meta.get('imdbnumber') and _mdblist_ready()
+	if not local_resume and not mdblist_sync:
 		return
 
 	monitor = xbmc.Monitor()
@@ -625,8 +660,19 @@ def _track_mdblist_watched(scrobble_meta):
 			pass
 		if monitor.waitForAbort(5):
 			return
+	if not total:
+		return
+	fraction = position / total
 
-	if not total or position / total < mdblist.WATCHED_THRESHOLD:
+	if local_resume:
+		key = _resume_key(scrobble_meta)
+		if key:
+			if fraction >= _RESUME_DONE_THRESHOLD:
+				cache.put(_RESUME_NAMESPACE, key, None)
+			else:
+				cache.put(_RESUME_NAMESPACE, key, {'position': position, 'total': total})
+
+	if not mdblist_sync or fraction < mdblist.WATCHED_THRESHOLD:
 		return
 	try:
 		if scrobble_meta.get('mediatype') == 'episode':
