@@ -80,33 +80,21 @@ def main():
 
 
 def write_index_html(built):
-	"""A plain download page at the Pages root - otherwise hitting the bare
-	repo URL with no filename 404s, since there's no directory listing."""
+	"""Bare download page at the Pages root - otherwise hitting the bare
+	repo URL with no filename 404s, since there's no directory listing.
+	Just the one link users actually need: the repository zip."""
 	repo_row = next((b for b in built if b[0] == 'repository.bridgiodi'), None)
-	other_rows = [b for b in built if b[0] != 'repository.bridgiodi']
-
-	def link(addon_id, version, zip_path):
-		href = '%s/%s' % (addon_id, os.path.basename(zip_path))
-		return '<li><a href="%s">%s %s</a></li>' % (href, addon_id, version)
-
-	repo_section = ''
+	href = ''
 	if repo_row:
-		repo_section = '<p><a href="%s/%s">Download the Kodi repository zip</a> (install this once in Kodi).</p>' % (
-			repo_row[0], os.path.basename(repo_row[2]))
-
-	other_section = ''
-	if other_rows:
-		other_section = '<ul>%s</ul>' % ''.join(link(*row) for row in other_rows)
+		addon_id, _version, zip_path = repo_row
+		href = '%s/%s' % (addon_id, os.path.basename(zip_path))
 
 	html = """<!doctype html>
-<html><head><meta charset="utf-8"><title>Bridgiodi Kodi repository</title></head>
+<html><head><meta charset="utf-8"><title>Bridgiodi</title></head>
 <body>
-<h1>Bridgiodi Kodi repository</h1>
-%s
-%s
-<p><a href="addons.xml">addons.xml</a></p>
+<a href="%s">%s</a>
 </body></html>
-""" % (repo_section, other_section)
+""" % (href, os.path.basename(href))
 
 	with open(os.path.join(OUTPUT_DIR, 'index.html'), 'w', encoding='utf-8') as f:
 		f.write(html)
