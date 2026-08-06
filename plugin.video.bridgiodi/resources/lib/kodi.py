@@ -4,7 +4,7 @@ import xbmc
 import xbmcaddon
 import xbmcvfs
 
-ADDON_ID = 'plugin.video.lumio'
+ADDON_ID = 'plugin.video.bridgiodi'
 
 # ISO 639-1 codes where TMDB expects a region to actually localise content
 # (a bare code silently falls back to English on TMDB's side for these).

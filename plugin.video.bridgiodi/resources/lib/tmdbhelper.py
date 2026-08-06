@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-	Registers Lumio as a player for TMDb Helper.
+	Registers Bridgiodi as a player for TMDb Helper.
 
 	TMDb Helper only reads player files from its own addon_data directory - it
 	does not scan other addons - so the bundled JSON has to be copied there.
@@ -16,7 +16,7 @@ from . import kodi
 
 HELPER_ID = 'plugin.video.themoviedb.helper'
 PLAYERS_DIR = 'special://profile/addon_data/%s/players/' % HELPER_ID
-PLAYER_FILE = 'lumio.json'
+PLAYER_FILE = 'bridgiodi.json'
 
 
 def helper_installed():

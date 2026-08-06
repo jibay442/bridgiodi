@@ -2,7 +2,7 @@
 import sys
 import re
 import time
-from urllib.parse import parse_qsl, quote, urlencode
+from urllib.parse import parse_qsl, quote, urlencode, urlparse
 from urllib.error import URLError, HTTPError
 
 import xbmc
@@ -98,7 +98,7 @@ def _fmt(string_id, *args):
 
 
 def log(msg):
-	xbmc.log('[plugin.video.lumio] %s' % msg, xbmc.LOGINFO)
+	xbmc.log('[plugin.video.bridgiodi] %s' % msg, xbmc.LOGINFO)
 
 
 def log_debug(msg):
@@ -112,34 +112,52 @@ def _get_json(url):
 	return net.get_json(url)
 
 
-def manifest_base():
-	url = ADDON.getSetting('manifest_url').strip()
-	if not url:
-		xbmcgui.Dialog().ok(ADDON_NAME, _(S_NO_MANIFEST))
-		ADDON.openSettings()
-		return None
-	return url.rsplit('/manifest.json', 1)[0]
+MANIFEST_SLOTS = 5
+
+
+def manifest_bases():
+	"""Configured manifest base URLs, in priority order (slot #1 first).
+
+	Kodi settings can't hold a dynamically growing list, so this is a fixed
+	number of optional slots instead - empty ones are just skipped.
+	"""
+	bases = []
+	for slot in range(1, MANIFEST_SLOTS + 1):
+		url = ADDON.getSetting('manifest_url_%d' % slot).strip()
+		if url:
+			bases.append(url.rsplit('/manifest.json', 1)[0])
+	return bases
 
 
 def fetch_streams(kodi_type, video_id):
-	base = manifest_base()
-	if not base:
+	"""Streams from every configured Stremio addon, each tagged with which
+	one it came from (stream['_provider'], an index into manifest_bases())
+	so results can stay grouped by provider instead of being intermixed."""
+	bases = manifest_bases()
+	if not bases:
+		xbmcgui.Dialog().ok(ADDON_NAME, _(S_NO_MANIFEST))
+		ADDON.openSettings()
 		return []
 	stream_type = 'series' if kodi_type == 'series' else 'movie'
-	url = '%s/stream/%s/%s.json' % (base, stream_type, quote(video_id, safe=':'))
-	try:
-		data = _get_json(url)
-		streams = data.get('streams', [])
-		log_debug('%s -> %d streams' % (url, len(streams)))
-		return streams
-	except HTTPError as e:
-		xbmcgui.Dialog().notification(ADDON_NAME, _fmt(S_HTTP_ERROR, e.code), xbmcgui.NOTIFICATION_ERROR)
-	except URLError as e:
-		xbmcgui.Dialog().notification(ADDON_NAME, _fmt(S_UNREACHABLE, e.reason), xbmcgui.NOTIFICATION_ERROR)
-	except Exception as e:
-		log('fetch_streams error: %s' % e)
-		xbmcgui.Dialog().notification(ADDON_NAME, _(S_FETCH_ERROR), xbmcgui.NOTIFICATION_ERROR)
-	return []
+	results = []
+	for index, base in enumerate(bases):
+		url = '%s/stream/%s/%s.json' % (base, stream_type, quote(video_id, safe=':'))
+		try:
+			data = _get_json(url)
+			streams = data.get('streams', [])
+			log_debug('%s -> %d streams' % (url, len(streams)))
+			for stream in streams:
+				stream['_provider'] = index
+			results.extend(streams)
+		except HTTPError as e:
+			xbmcgui.Dialog().notification(ADDON_NAME, _fmt(S_HTTP_ERROR, e.code), xbmcgui.NOTIFICATION_ERROR)
+		except URLError as e:
+			xbmcgui.Dialog().notification(ADDON_NAME, _fmt(S_UNREACHABLE, e.reason), xbmcgui.NOTIFICATION_ERROR)
+		except Exception as e:
+			# One provider being unreachable shouldn't cost the others their
+			# results - log it and move on rather than aborting the batch.
+			log('fetch_streams error (%s): %s' % (base, e))
+	return results
 
 
 def _tmdb_error(error, fallback_id):
@@ -416,8 +434,18 @@ def sort_streams(streams):
 
 
 def playable_streams(kodi_type, video_id):
-	streams = sort_streams(fetch_streams(kodi_type, video_id))
-	return [s for s in streams if s.get('url')]
+	"""Quality-sorted streams, grouped by provider (provider #1's sorted
+	streams first, then #2's, etc.) rather than sorted across all providers
+	together - so a provider you trust more always outranks the others,
+	regardless of which one happens to report better-looking quality tags."""
+	raw = fetch_streams(kodi_type, video_id)
+	by_provider = {}
+	for stream in raw:
+		by_provider.setdefault(stream.get('_provider', 0), []).append(stream)
+	ordered = []
+	for index in sorted(by_provider):
+		ordered.extend(sort_streams(by_provider[index]))
+	return [s for s in ordered if s.get('url')]
 
 
 def _without_poster(meta):
@@ -560,15 +588,23 @@ def play_best(kodi_type, video_id, scrobble_meta=None, resume=None, card=None):
 	resolve_and_play(_first_working_stream(streams), scrobble_meta, resume, card)
 
 
+def _provider_host(index):
+	bases = manifest_bases()
+	if 0 <= index < len(bases):
+		return urlparse(bases[index]).hostname or ''
+	return ''
+
+
 def list_streams(kodi_type, video_id, scrobble_meta=None, card=None):
 	card = card if card is not None else dict(scrobble_meta or {})
-	streams = sort_streams(fetch_streams(kodi_type, video_id))
+	streams = playable_streams(kodi_type, video_id)
 	if not streams:
 		xbmcgui.Dialog().notification(ADDON_NAME, _(S_NO_STREAMS), xbmcgui.NOTIFICATION_INFO)
 		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
 		return
 
 	xbmcplugin.setContent(HANDLE, 'videos')
+	multi_provider = len(manifest_bases()) > 1
 	for stream in streams:
 		url = stream.get('url')
 		if not url:
@@ -576,6 +612,10 @@ def list_streams(kodi_type, video_id, scrobble_meta=None, card=None):
 			# standalone player (no debrid/torrent client here) - skip it.
 			continue
 		label, _name = stream_display(stream)
+		if multi_provider:
+			host = _provider_host(stream.get('_provider', 0))
+			if host:
+				label = '[%s] %s' % (host, label)
 		li = xbmcgui.ListItem(label=label)
 		# The release filename belongs in the LABEL only, so you can still tell
 		# sources apart. It used to overwrite the title in the info tag, which
@@ -1157,7 +1197,7 @@ def clear_cache():
 
 
 def install_th_player():
-	"""Register Lumio as a TMDb Helper player, on explicit request only."""
+	"""Register Bridgiodi as a TMDb Helper player, on explicit request only."""
 	if not tmdbhelper.helper_installed():
 		xbmcgui.Dialog().ok(ADDON_NAME, _(S_TH_MISSING))
 		return
@@ -1416,7 +1456,7 @@ def _scrobble_meta(params):
 
 
 def play_external(params):
-	"""Entry point used by TMDb Helper (see resources/players/lumio.json).
+	"""Entry point used by TMDb Helper (see resources/players/bridgiodi.json).
 
 	One resolvable entry point rather than two players: with auto-play off it
 	shows a modal source picker instead of a directory, because a player
@@ -1455,7 +1495,7 @@ def play_external(params):
 		return
 
 	# Launching from TMDb Helper is a "play this" gesture, so it gets its own
-	# switch: you can keep the source picker while browsing Lumio and still have
+	# switch: you can keep the source picker while browsing Bridgiodi and still have
 	# one-click playback from TMDb Helper.
 	auto = (ADDON.getSetting('external_auto_play') == 'true'
 	        or ADDON.getSetting('auto_play_best') == 'true')
