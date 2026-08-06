@@ -11,9 +11,9 @@
 <addon id="repository.bridgiodi" name="Bridgiodi Repository" version="1.0.0" provider-name="jibay442">
 	<extension point="xbmc.addon.repository" name="Bridgiodi Repository">
 		<dir>
-			<info compressed="false">https://jibay442.github.io/plugin.video.lumio/addons.xml</info>
-			<checksum>https://jibay442.github.io/plugin.video.lumio/addons.xml.md5</checksum>
-			<datadir zip="true">https://jibay442.github.io/plugin.video.lumio/</datadir>
+			<info compressed="false">https://jibay442.github.io/Bridgiodi/addons.xml</info>
+			<checksum>https://jibay442.github.io/Bridgiodi/addons.xml.md5</checksum>
+			<datadir zip="true">https://jibay442.github.io/Bridgiodi/</datadir>
 		</dir>
 	</extension>
 	<extension point="xbmc.addon.metadata">
