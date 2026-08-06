@@ -8,6 +8,21 @@
 					<default>false</default>
 					<control type="toggle"/>
 				</setting>
+				<setting id="clear_cache_action" type="action" label="30161" help="30162">
+					<level>0</level>
+					<data>RunPlugin(plugin://plugin.video.lumio/?action=clear_cache)</data>
+					<control type="button" format="action"/>
+				</setting>
+				<setting id="local_resume" type="boolean" label="30163" help="30164">
+					<level>0</level>
+					<default>true</default>
+					<control type="toggle"/>
+				</setting>
+				<setting id="force_original_audio" type="boolean" label="30165" help="30166">
+					<level>0</level>
+					<default>false</default>
+					<control type="toggle"/>
+				</setting>
 			</group>
 		</category>
 		<category id="tmdb" label="30105">
@@ -49,6 +64,50 @@
 					<control type="button" format="action">
 						<close>true</close>
 					</control>
+				</setting>
+			</group>
+		</category>
+		<category id="mdblist" label="30135">
+			<group id="1" label="30136">
+				<setting id="mdblist_enabled" type="boolean" label="30137" help="30138">
+					<level>0</level>
+					<default>false</default>
+					<control type="toggle"/>
+				</setting>
+				<setting id="mdblist_client_id" type="string" label="30139" help="30140" parent="mdblist_enabled">
+					<level>0</level>
+					<default/>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<condition operator="is" setting="mdblist_enabled">true</condition>
+						</dependency>
+					</dependencies>
+					<control type="edit" format="string">
+						<heading>30139</heading>
+					</control>
+				</setting>
+				<setting id="mdblist_connect_action" type="action" label="30141" help="30142" parent="mdblist_enabled">
+					<level>0</level>
+					<data>RunPlugin(plugin://plugin.video.lumio/?action=mdblist_connect)</data>
+					<dependencies>
+						<dependency type="visible">
+							<condition operator="is" setting="mdblist_enabled">true</condition>
+						</dependency>
+					</dependencies>
+					<control type="button" format="action"/>
+				</setting>
+				<setting id="mdblist_disconnect_action" type="action" label="30143" parent="mdblist_enabled">
+					<level>0</level>
+					<data>RunPlugin(plugin://plugin.video.lumio/?action=mdblist_disconnect)</data>
+					<dependencies>
+						<dependency type="visible">
+							<condition operator="is" setting="mdblist_enabled">true</condition>
+						</dependency>
+					</dependencies>
+					<control type="button" format="action"/>
 				</setting>
 			</group>
 		</category>

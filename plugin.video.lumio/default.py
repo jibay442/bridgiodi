@@ -10,7 +10,7 @@ import xbmcgui
 import xbmcplugin
 import xbmcaddon
 
-from resources.lib import cache, net, tmdb, tmdbhelper
+from resources.lib import cache, mdblist, net, tmdb, tmdbhelper
 
 ADDON = xbmcaddon.Addon()
 ADDON_NAME = ADDON.getAddonInfo('name')
@@ -26,14 +26,10 @@ _SIZE_UNITS = {'G': 1024 ** 3, 'M': 1024 ** 2, 'K': 1024}
 CINEMETA_BASE = 'https://v3-cinemeta.strem.io'
 
 # String ids, see resources/language/*/strings.po
-S_SEARCH_MOVIES = 30036
-S_SEARCH_SERIES = 30037
 S_SETTINGS = 30044
 S_NEXT_PAGE = 30045
 S_SEASON = 30046
 S_SPECIALS = 30047
-S_SEARCH_MOVIES_PROMPT = 30049
-S_SEARCH_SERIES_PROMPT = 30050
 S_NO_MANIFEST = 30051
 S_NO_STREAMS = 30052
 S_NO_RESULTS = 30053
@@ -60,6 +56,28 @@ S_PICK_SOURCE = 30127
 S_TH_INSTALLED = 30129
 S_TH_MISSING = 30130
 S_TH_FAILED = 30131
+S_MDBLIST_UPNEXT = 30144
+S_MDBLIST_NO_CLIENT_ID = 30145
+S_MDBLIST_ENTER_CODE = 30146
+S_MDBLIST_WAITING = 30147
+S_MDBLIST_CONNECTED = 30148
+S_MDBLIST_CANCELLED = 30149
+S_MDBLIST_CONNECT_FAILED = 30150
+S_MDBLIST_DISCONNECTED = 30151
+S_MDBLIST_NOT_CONNECTED = 30152
+S_MDBLIST_EMPTY = 30153
+S_MDBLIST_LOAD_FAILED = 30154
+S_MDBLIST_WATCHLIST = 30155
+S_MDBLIST_WATCHLIST_EMPTY = 30156
+S_MDBLIST_MY_LISTS = 30157
+S_MDBLIST_LIKED_LISTS = 30158
+S_MDBLIST_NO_LISTS = 30159
+S_CACHE_CLEARED = 30160
+S_RESUME_LABEL = 30167
+S_RESUME_EMPTY = 30168
+S_SEARCH = 30170
+S_SEARCH_PROMPT = 30171
+S_NEW_SEARCH = 30174
 
 
 def _(string_id):
@@ -519,13 +537,27 @@ def _card(params, scrobble_meta=None):
 	return card
 
 
+# How many top-ranked candidates get HEAD-probed before giving up and
+# falling back to the highest-ranked one regardless (a false-negative probe
+# is more likely than every single one of them being truly dead).
+_STREAM_PROBE_LIMIT = 5
+
+
+def _first_working_stream(streams):
+	for stream in streams[:_STREAM_PROBE_LIMIT]:
+		url = stream.get('url')
+		if url and net.check_url(url):
+			return url
+	return streams[0].get('url') if streams else None
+
+
 def play_best(kodi_type, video_id, scrobble_meta=None, resume=None, card=None):
 	streams = playable_streams(kodi_type, video_id)
 	if not streams:
 		xbmcgui.Dialog().notification(ADDON_NAME, _(S_NO_STREAMS), xbmcgui.NOTIFICATION_INFO)
 		xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
 		return
-	resolve_and_play(streams[0]['url'], scrobble_meta, resume, card)
+	resolve_and_play(_first_working_stream(streams), scrobble_meta, resume, card)
 
 
 def list_streams(kodi_type, video_id, scrobble_meta=None, card=None):
@@ -560,6 +592,36 @@ def list_streams(kodi_type, video_id, scrobble_meta=None, card=None):
 	xbmcplugin.endOfDirectory(HANDLE)
 
 
+_RESUME_NAMESPACE = 'resume'
+# Past this fraction, a saved position isn't worth resuming from - close
+# enough to the end that starting over (or letting mdblist mark it watched)
+# is more useful than seeking back into the credits.
+_RESUME_DONE_THRESHOLD = 0.9
+
+
+def _resume_key(scrobble_meta):
+	imdb = scrobble_meta.get('imdbnumber')
+	if not imdb:
+		return None
+	if scrobble_meta.get('mediatype') == 'episode':
+		return '%s:%s:%s' % (imdb, scrobble_meta.get('season'), scrobble_meta.get('episode'))
+	return imdb
+
+
+def _local_resume_enabled():
+	return ADDON.getSetting('local_resume') == 'true'
+
+
+def _load_resume(scrobble_meta):
+	if not scrobble_meta or not _local_resume_enabled():
+		return None
+	key = _resume_key(scrobble_meta)
+	saved = cache.get(_RESUME_NAMESPACE, key, ttl=0) if key else None
+	if not saved or not saved.get('total'):
+		return None
+	return saved['position'], saved['total']
+
+
 def resolve_and_play(url, scrobble_meta=None, resume=None, card=None):
 	headers = 'User-Agent=%s' % quote(_UA)
 	li = xbmcgui.ListItem(path='%s|%s' % (url, headers))
@@ -569,12 +631,163 @@ def resolve_and_play(url, scrobble_meta=None, resume=None, card=None):
 		# playing item.
 		card = card if card is not None else dict(scrobble_meta)
 		apply_info(li, card, card.get('mediatype') or 'video')
+	if resume is None:
+		resume = _load_resume(scrobble_meta)
 	if resume:
 		position, total = resume
 		if total:
 			li.setProperty('ResumeTime', str(position))
 			li.setProperty('TotalTime', str(total))
 	xbmcplugin.setResolvedUrl(HANDLE, True, li)
+	_track_playback(scrobble_meta, card)
+
+
+# ISO 639-1 -> tokens Kodi's getAvailableAudioStreams() might return for that
+# language (2-letter, common ISO 639-2 variants, English name). Kodi surfaces
+# whatever the file's own container tags say, which varies by muxer - matching
+# loosely against several plausible spellings is more reliable than picking one.
+_AUDIO_LANGUAGE_ALIASES = {
+	'en': ('en', 'eng', 'english'), 'fr': ('fr', 'fre', 'fra', 'french'),
+	'ja': ('ja', 'jpn', 'japanese'), 'ko': ('ko', 'kor', 'korean'),
+	'de': ('de', 'ger', 'deu', 'german'), 'es': ('es', 'spa', 'spanish'),
+	'it': ('it', 'ita', 'italian'), 'pt': ('pt', 'por', 'portuguese'),
+	'zh': ('zh', 'chi', 'zho', 'chinese', 'mandarin', 'cantonese'),
+	'ru': ('ru', 'rus', 'russian'), 'hi': ('hi', 'hin', 'hindi'),
+	'ar': ('ar', 'ara', 'arabic'), 'nl': ('nl', 'dut', 'nld', 'dutch'),
+	'sv': ('sv', 'swe', 'swedish'), 'da': ('da', 'dan', 'danish'),
+	'nb': ('nb', 'no', 'nor', 'norwegian'), 'fi': ('fi', 'fin', 'finnish'),
+	'pl': ('pl', 'pol', 'polish'), 'tr': ('tr', 'tur', 'turkish'),
+	'th': ('th', 'tha', 'thai'), 'he': ('he', 'heb', 'hebrew'),
+	'cs': ('cs', 'cze', 'ces', 'czech'), 'el': ('el', 'gre', 'ell', 'greek'),
+	'hu': ('hu', 'hun', 'hungarian'), 'ro': ('ro', 'rum', 'ron', 'romanian'),
+	'id': ('id', 'ind', 'indonesian'), 'uk': ('uk', 'ukr', 'ukrainian'),
+	'vi': ('vi', 'vie', 'vietnamese'),
+}
+
+
+def _match_audio_stream_index(streams, original_language):
+	aliases = _AUDIO_LANGUAGE_ALIASES.get((original_language or '').lower())
+	if not aliases:
+		return None
+	for index, label in enumerate(streams or []):
+		if (label or '').strip().lower() in aliases:
+			return index
+	return None
+
+
+def _apply_original_audio(card):
+	"""Switches to the original-language audio track, once it's known.
+
+	A "default" flag baked into the file is not reliable evidence of the
+	original language - a dub is routinely flagged default - so this reads
+	TMDB's own original_language instead of trusting the file.
+	"""
+	original_language = (card or {}).get('original_language')
+	if not original_language:
+		return
+	monitor = xbmc.Monitor()
+	player = xbmc.Player()
+	streams = []
+	# Stream info isn't necessarily ready the instant playback starts -
+	# give it a couple of seconds before giving up.
+	for _i in range(15):
+		try:
+			streams = player.getAvailableAudioStreams()
+		except Exception:
+			streams = []
+		if streams:
+			break
+		if monitor.waitForAbort(0.4):
+			return
+	index = _match_audio_stream_index(streams, original_language)
+	if index is None:
+		log_debug('force_original_audio: no %s track among %r' % (original_language, streams))
+		return
+	try:
+		player.setAudioStream(index)
+		log_debug('force_original_audio: switched to stream %d (%s) out of %r' % (index, original_language, streams))
+	except Exception as e:
+		log('force_original_audio: setAudioStream failed: %s' % e)
+
+
+def _track_playback(scrobble_meta, card=None):
+	"""Blocks until this playback ends, then saves a local resume point and/or
+	reports it watched to MDBList - whichever of the two is turned on. Also
+	forces the original-language audio track right after playback starts,
+	if that setting is on.
+
+	Runs in-process rather than via a background service - this addon has
+	none, and adding one solely for this would mean an addon.xml change and
+	a Kodi restart to register. The tradeoff: this plugin invocation stays
+	alive for the whole runtime of the video (Kodi does not require a
+	resolver script to exit right after setResolvedUrl).
+	"""
+	local_resume = bool(scrobble_meta) and _local_resume_enabled()
+	mdblist_sync = bool(scrobble_meta) and scrobble_meta.get('imdbnumber') and _mdblist_ready()
+	force_audio = ADDON.getSetting('force_original_audio') == 'true' and bool((card or {}).get('original_language'))
+	if not local_resume and not mdblist_sync and not force_audio:
+		return
+
+	monitor = xbmc.Monitor()
+	player = xbmc.Player()
+	for _i in range(50):
+		if monitor.waitForAbort(0.2):
+			return
+		if player.isPlayingVideo():
+			break
+	else:
+		return
+
+	if force_audio:
+		_apply_original_audio(card)
+	if not local_resume and not mdblist_sync:
+		return
+
+	position, total = 0, 0
+	while player.isPlayingVideo():
+		try:
+			position, total = player.getTime(), player.getTotalTime()
+		except Exception:
+			pass
+		if monitor.waitForAbort(5):
+			return
+	if not total:
+		return
+	fraction = position / total
+
+	if local_resume:
+		key = _resume_key(scrobble_meta)
+		if key:
+			if fraction >= _RESUME_DONE_THRESHOLD:
+				cache.put(_RESUME_NAMESPACE, key, None)
+			else:
+				# Enough of the source item is snapshotted here that the
+				# "Resume playback" folder can render a listing without
+				# re-resolving anything from TMDB/Cinemeta.
+				cache.put(_RESUME_NAMESPACE, key, {
+					'position': position, 'total': total,
+					'mediatype': scrobble_meta.get('mediatype') or 'movie',
+					'imdbnumber': scrobble_meta.get('imdbnumber'),
+					'title': scrobble_meta.get('title') or (card or {}).get('title') or '',
+					'tvshowtitle': scrobble_meta.get('tvshowtitle') or '',
+					'season': scrobble_meta.get('season'),
+					'episode': scrobble_meta.get('episode'),
+					'year': scrobble_meta.get('year') or (card or {}).get('year') or '',
+					'poster': (card or {}).get('poster') or scrobble_meta.get('poster') or '',
+					'tmdb': (card or {}).get('tmdb') or '',
+				})
+
+	if not mdblist_sync or fraction < mdblist.WATCHED_THRESHOLD:
+		return
+	try:
+		if scrobble_meta.get('mediatype') == 'episode':
+			mdblist.mark_episode_watched(
+				scrobble_meta['imdbnumber'], scrobble_meta.get('season'), scrobble_meta.get('episode'))
+		else:
+			mdblist.mark_movie_watched(scrobble_meta['imdbnumber'])
+		log_debug('mdblist: marked %s watched' % scrobble_meta['imdbnumber'])
+	except Exception as e:
+		log('mdblist watched-sync failed: %s' % e)
 
 
 def render_items(items, next_page_params=None):
@@ -636,6 +849,8 @@ def _browse(kind, catalog_id, screen=1, genre=None, year=None):
 		_tmdb_error(e, S_LOAD_LIST_FAILED)
 		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
 		return
+	log_debug('catalog %s/%s screen=%s genre=%s year=%s -> %d items, has_more=%s' %
+	          (kind, catalog_id, screen, genre, year, len(items), has_more))
 	next_page = None
 	if has_more:
 		next_page = {'action': 'catalog', 'kind': kind, 'catalog': catalog_id, 'screen': screen + 1}
@@ -646,22 +861,89 @@ def _browse(kind, catalog_id, screen=1, genre=None, year=None):
 	render_items(items, next_page)
 
 
-def search(media, prompt_id, screen=1, query=None):
+_SEARCH_HISTORY_LIMIT = 15
+
+
+def _search_history(scope):
+	return cache.get('search_history', scope, ttl=0) or []
+
+
+def _remember_search(scope, query):
+	history = [q for q in _search_history(scope) if q.lower() != query.lower()]
+	history.insert(0, query)
+	cache.put('search_history', scope, history[:_SEARCH_HISTORY_LIMIT])
+
+
+def render_mixed_items(items, next_page_params=None):
+	"""Like render_items, but for a list mixing movies and shows (combined
+	search) - target action and card fields are decided per item instead of
+	once for the whole page, and the content type stays generic since Kodi
+	has no single specialised view for a movie/show mix."""
+	if not items:
+		xbmcgui.Dialog().notification(ADDON_NAME, _(S_NO_RESULTS), xbmcgui.NOTIFICATION_INFO)
+		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+		return
+
+	xbmcplugin.setContent(HANDLE, 'videos')
+	auto_play = ADDON.getSetting('auto_play_best') == 'true'
+	for item in items:
+		is_movie = (item.get('media') or 'movie') == 'movie'
+		year = item.get('year') or ''
+		title = item.get('title') or 'Unknown'
+		li = xbmcgui.ListItem(label='%s (%s)' % (title, year) if year else title)
+		apply_info(li, item, 'movie' if is_movie else 'tvshow')
+		target_action = ('movie_play_best' if auto_play else 'movie_streams') if is_movie else 'seasons'
+		is_leaf_movie = is_movie and auto_play
+		if is_leaf_movie:
+			li.setProperty('IsPlayable', 'true')
+		url_params = {'action': target_action, 'tmdb': item.get('tmdb')}
+		if is_movie:
+			url_params.update({'mediatype': 'movie', 'title': title, 'year': year, 'poster': item.get('poster') or ''})
+		if is_leaf_movie:
+			add_pick_source(li, dict(url_params, action='movie_streams'))
+		url = '%s?%s' % (BASE_URL, urlencode(url_params))
+		xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=not is_leaf_movie)
+
+	if next_page_params:
+		li = xbmcgui.ListItem(label=_(S_NEXT_PAGE))
+		url = '%s?%s' % (BASE_URL, urlencode(next_page_params))
+		xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
+	xbmcplugin.endOfDirectory(HANDLE)
+
+
+def search_all(query=None, screen=1):
+	"""Combined movie+series search - also what Kodi's global search calls
+	(plugin://.../?action=search&query=TERM, with no media specified)."""
 	if not query:
-		query = xbmcgui.Dialog().input(_(prompt_id))
+		query = xbmcgui.Dialog().input(_(S_SEARCH_PROMPT))
 	if not query:
 		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
 		return
+	_remember_search('all', query)
 	try:
-		items, has_more = tmdb.search(media, query, screen=screen)
+		movies, movies_more = tmdb.search('movie', query, screen=screen)
+		shows, shows_more = tmdb.search('tv', query, screen=screen)
 	except Exception as e:
 		_tmdb_error(e, S_SEARCH_FAILED)
 		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
 		return
-	next_page = None
-	if has_more:
-		next_page = {'action': 'search', 'media': media, 'query': query, 'screen': screen + 1}
-	render_items(items, next_page)
+	next_page = {'action': 'search', 'query': query, 'screen': screen + 1} if (movies_more or shows_more) else None
+	render_mixed_items(movies + shows, next_page)
+
+
+def search_menu():
+	"""Landing screen for the single "Search" entry: a "New search" item,
+	then past queries below it, so reopening it goes straight to your
+	recent searches instead of a keyboard prompt every time."""
+	xbmcplugin.setContent(HANDLE, 'videos')
+	li = xbmcgui.ListItem(label=_(S_NEW_SEARCH))
+	url = '%s?%s' % (BASE_URL, urlencode({'action': 'search'}))
+	xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
+	for query in _search_history('all'):
+		li = xbmcgui.ListItem(label=query)
+		url = '%s?%s' % (BASE_URL, urlencode({'action': 'search', 'query': query}))
+		xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
+	xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
 # Section -> the catalogue entries it offers. Box office is movies only:
@@ -673,8 +955,55 @@ _SECTIONS = {
 }
 
 
+def list_resume(kind):
+	"""Movies (kind='movie') or episodes (kind='tv') with a saved local
+	resume point, newest-saved first. Each entry resumes straight into
+	playback - resolve_and_play auto-fills the resume position from the
+	same cache entry this list reads."""
+	wanted_mediatype = 'movie' if kind == 'movie' else 'episode'
+	entries = cache.all_entries(_RESUME_NAMESPACE, ttl=0)
+	rows = [(key, value) for key, value in entries.items()
+	        if value and value.get('mediatype') == wanted_mediatype and value.get('total')]
+	if not rows:
+		xbmcgui.Dialog().notification(ADDON_NAME, _(S_RESUME_EMPTY), xbmcgui.NOTIFICATION_INFO)
+		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+		return
+
+	xbmcplugin.setContent(HANDLE, 'movies' if kind == 'movie' else 'episodes')
+	is_movie = kind == 'movie'
+	for _key, row in rows:
+		percent = int(row['position'] / row['total'] * 100)
+		if is_movie:
+			label = '%s (%d%%)' % (row.get('title') or '', percent)
+		else:
+			label = '%s - %sx%02d (%d%%)' % (
+				row.get('tvshowtitle') or row.get('title') or '', row.get('season'), row.get('episode') or 0, percent)
+		li = xbmcgui.ListItem(label=label)
+		apply_info(li, dict(row, imdb=row.get('imdbnumber')), 'movie' if is_movie else 'episode')
+		li.setProperty('IsPlayable', 'true')
+		url_params = {
+			'action': 'movie_play_best' if is_movie else 'episode_play_best',
+			'imdb': row.get('imdbnumber'), 'tmdb': row.get('tmdb') or '',
+			'title': row.get('title') or '', 'year': row.get('year') or '',
+			'mediatype': wanted_mediatype, 'imdbnumber': row.get('imdbnumber'),
+		}
+		if not is_movie:
+			url_params.update({
+				'season': row.get('season'), 'episode': row.get('episode'),
+				'tvshowtitle': row.get('tvshowtitle') or '',
+			})
+		add_pick_source(li, dict(url_params, action='movie_streams' if is_movie else 'episode_streams'))
+		url = '%s?%s' % (BASE_URL, urlencode(url_params))
+		xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=False)
+	xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+
 def list_section(kind):
 	xbmcplugin.setContent(HANDLE, 'videos')
+	if kind in ('movie', 'tv') and _local_resume_enabled():
+		li = xbmcgui.ListItem(label=_(S_RESUME_LABEL))
+		url = '%s?%s' % (BASE_URL, urlencode({'action': 'resume_list', 'kind': kind}))
+		xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
 	for string_id, catalog_id in _SECTIONS.get(kind, ()):
 		li = xbmcgui.ListItem(label=_(string_id))
 		url = '%s?%s' % (BASE_URL, urlencode({'action': 'catalog', 'kind': kind, 'catalog': catalog_id}))
@@ -819,6 +1148,14 @@ def open_settings():
 	xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
 
 
+def clear_cache():
+	# The MDBList auth token and saved resume points live in the same cache
+	# mechanism but aren't really a cache - clearing them here would silently
+	# log the user out and reset playback progress.
+	removed = cache.clear_all(exclude_namespaces=('mdblist_auth', _RESUME_NAMESPACE))
+	xbmcgui.Dialog().notification(ADDON_NAME, _fmt(S_CACHE_CLEARED, removed), xbmcgui.NOTIFICATION_INFO)
+
+
 def install_th_player():
 	"""Register Lumio as a TMDb Helper player, on explicit request only."""
 	if not tmdbhelper.helper_installed():
@@ -837,16 +1174,221 @@ def install_th_player():
 	xbmcgui.Dialog().ok(ADDON_NAME, '%s\n\n%s' % (_(S_TH_INSTALLED), target))
 
 
+def _mdblist_ready():
+	"""On, AND connected - the two things required before any MDBList call."""
+	return ADDON.getSetting('mdblist_enabled') == 'true' and mdblist.is_connected()
+
+
+def mdblist_connect():
+	"""Device-code sign-in, run from the settings screen's Connect button."""
+	try:
+		auth = mdblist.start_device_auth()
+	except mdblist.MdblistError as e:
+		message = _(S_MDBLIST_NO_CLIENT_ID) if 'client id' in str(e) else _fmt(S_MDBLIST_CONNECT_FAILED, e)
+		xbmcgui.Dialog().ok(ADDON_NAME, message)
+		return
+
+	# Stays in the message on every update below: DialogProgress.update()
+	# replaces the whole message, so a "waiting" line without it would erase
+	# the code from view the moment the first tick lands.
+	instructions = _fmt(S_MDBLIST_ENTER_CODE, auth['verification_uri'], auth['user_code'])
+	progress = xbmcgui.DialogProgress()
+	progress.create(ADDON_NAME, '%s\n%s' % (instructions, _(S_MDBLIST_WAITING)))
+	monitor = xbmc.Monitor()
+
+	def wait(seconds):
+		# waitForAbort sleeps AND doubles as the Kodi-shutdown check.
+		progress.update(50, '%s\n%s' % (instructions, _(S_MDBLIST_WAITING)))
+		monitor.waitForAbort(seconds)
+
+	def cancelled():
+		return progress.iscanceled() or monitor.abortRequested()
+
+	try:
+		token = mdblist.poll_device_token(
+			auth['device_code'], auth.get('interval', 5), auth.get('expires_in', 300), wait, cancelled)
+	except mdblist.MdblistError as e:
+		progress.close()
+		xbmcgui.Dialog().ok(ADDON_NAME, _fmt(S_MDBLIST_CONNECT_FAILED, e))
+		return
+	progress.close()
+
+	if not token:
+		xbmcgui.Dialog().notification(ADDON_NAME, _(S_MDBLIST_CANCELLED), xbmcgui.NOTIFICATION_INFO)
+		return
+	xbmcgui.Dialog().notification(ADDON_NAME, _(S_MDBLIST_CONNECTED), xbmcgui.NOTIFICATION_INFO)
+
+
+def mdblist_disconnect():
+	mdblist.disconnect()
+	xbmcgui.Dialog().notification(ADDON_NAME, _(S_MDBLIST_DISCONNECTED), xbmcgui.NOTIFICATION_INFO)
+
+
+def _upnext_card(item):
+	"""Best-effort ListItem info from one /upnext row.
+
+	The response is documented loosely ("show metadata, next-episode
+	details..."), not as a typed schema, so everything here is read
+	defensively with fallbacks instead of assumed to exist.
+	"""
+	show = item.get('show') or item
+	episode = item.get('next_episode') or item.get('episode') or {}
+	ids = show.get('ids') or item.get('ids') or {}
+	return {
+		'imdb': ids.get('imdb') or '',
+		'tvshowtitle': show.get('title') or '',
+		'title': episode.get('title') or '',
+		'season': episode.get('season'),
+		'episode': episode.get('number') or episode.get('episode'),
+		'plot': episode.get('overview') or show.get('overview') or '',
+		'poster': show.get('poster') or show.get('poster_path') or '',
+		'fanart': show.get('fanart') or show.get('backdrop_path') or '',
+	}
+
+
+def _render_upnext(fetch, empty_string_id):
+	if not _mdblist_ready():
+		xbmcgui.Dialog().notification(ADDON_NAME, _(S_MDBLIST_NOT_CONNECTED), xbmcgui.NOTIFICATION_INFO)
+		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+		return
+	try:
+		items = fetch()
+	except Exception as e:
+		xbmcgui.Dialog().notification(ADDON_NAME, _fmt(S_MDBLIST_LOAD_FAILED, e), xbmcgui.NOTIFICATION_ERROR)
+		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+		return
+	if not items:
+		xbmcgui.Dialog().notification(ADDON_NAME, _(empty_string_id), xbmcgui.NOTIFICATION_INFO)
+		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+		return
+
+	xbmcplugin.setContent(HANDLE, 'episodes')
+	auto_play = ADDON.getSetting('auto_play_best') == 'true'
+	target_action = 'episode_play_best' if auto_play else 'episode_streams'
+	for row in items:
+		card = _upnext_card(row)
+		if not card['imdb'] or not card['season'] or not card['episode']:
+			continue
+		label = '%s - %sx%02d' % (card['tvshowtitle'] or _(S_MDBLIST_UPNEXT), card['season'], card['episode'])
+		li = xbmcgui.ListItem(label=label)
+		apply_info(li, dict(card, mediatype='episode'), 'episode')
+		if auto_play:
+			li.setProperty('IsPlayable', 'true')
+		url_params = {
+			'action': target_action, 'imdb': card['imdb'], 'season': card['season'], 'episode': card['episode'],
+			'mediatype': 'episode', 'imdbnumber': card['imdb'],
+			'tvshowtitle': card['tvshowtitle'], 'title': card['title'], 'poster': card['poster'],
+		}
+		if auto_play:
+			add_pick_source(li, dict(url_params, action='episode_streams'))
+		url = '%s?%s' % (BASE_URL, urlencode(url_params))
+		xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=not auto_play)
+	# Never cached: Up Next is meant to reflect what just changed on MDBList
+	# (a new watchlist add, a check-in from another device...), so Kodi's
+	# usual folder cache would show stale progress here more than it helps.
+	xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+
+def list_upnext():
+	_render_upnext(mdblist.get_upnext, S_MDBLIST_EMPTY)
+
+
+def list_mdblist_watchlist():
+	_render_upnext(mdblist.get_upnext_watchlist, S_MDBLIST_WATCHLIST_EMPTY)
+
+
+def list_mdblist_lists(mode):
+	"""Root screen for either 'user' (own lists) or 'liked' (liked lists)."""
+	if not _mdblist_ready():
+		xbmcgui.Dialog().notification(ADDON_NAME, _(S_MDBLIST_NOT_CONNECTED), xbmcgui.NOTIFICATION_INFO)
+		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+		return
+	try:
+		rows = mdblist.get_user_lists() if mode == 'user' else mdblist.get_liked_lists()
+	except Exception as e:
+		xbmcgui.Dialog().notification(ADDON_NAME, _fmt(S_MDBLIST_LOAD_FAILED, e), xbmcgui.NOTIFICATION_ERROR)
+		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+		return
+	if not rows:
+		xbmcgui.Dialog().notification(ADDON_NAME, _(S_MDBLIST_NO_LISTS), xbmcgui.NOTIFICATION_INFO)
+		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+		return
+
+	xbmcplugin.setContent(HANDLE, 'videos')
+	for row in rows:
+		name = row.get('name') or ''
+		count = row.get('items')
+		label = '%s (%d)' % (name, count) if count else name
+		li = xbmcgui.ListItem(label=label)
+		url = '%s?%s' % (BASE_URL, urlencode({'action': 'mdblist_list_items', 'listid': row.get('id')}))
+		xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
+	xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+
+def _mdblist_list_card(row):
+	ids = row.get('ids') or {}
+	return {
+		'imdb': ids.get('imdb') or row.get('imdb_id') or '',
+		'tmdb': ids.get('tmdb') or '',
+		'title': row.get('title') or '',
+		'year': str(row.get('release_year') or ''),
+		'is_movie': (row.get('mediatype') or 'movie') == 'movie',
+	}
+
+
+def list_mdblist_list_items(listid):
+	"""Movies/shows inside one MDBList list - links straight into the normal
+	streams flow via imdb id, same as any other catalogue entry point."""
+	if not _mdblist_ready():
+		xbmcgui.Dialog().notification(ADDON_NAME, _(S_MDBLIST_NOT_CONNECTED), xbmcgui.NOTIFICATION_INFO)
+		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+		return
+	try:
+		data = mdblist.get_list_items(listid)
+	except Exception as e:
+		xbmcgui.Dialog().notification(ADDON_NAME, _fmt(S_MDBLIST_LOAD_FAILED, e), xbmcgui.NOTIFICATION_ERROR)
+		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+		return
+	rows = list(data.get('movies') or []) + list(data.get('shows') or [])
+	if not rows:
+		xbmcgui.Dialog().notification(ADDON_NAME, _(S_MDBLIST_EMPTY), xbmcgui.NOTIFICATION_INFO)
+		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+		return
+
+	xbmcplugin.setContent(HANDLE, 'videos')
+	for row in rows:
+		card = _mdblist_list_card(row)
+		if not card['imdb']:
+			# No IMDb id, no stream lookup possible - same rule TMDB items follow.
+			continue
+		label = '%s (%s)' % (card['title'], card['year']) if card['year'] else card['title']
+		li = xbmcgui.ListItem(label=label)
+		apply_info(li, card, 'movie' if card['is_movie'] else 'tvshow')
+		url_params = {
+			'action': 'movie_streams' if card['is_movie'] else 'seasons',
+			'imdb': card['imdb'], 'tmdb': card['tmdb'], 'title': card['title'], 'year': card['year'],
+		}
+		if card['is_movie']:
+			url_params['mediatype'] = 'movie'
+		url = '%s?%s' % (BASE_URL, urlencode(url_params))
+		xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
+	xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+
 def root_menu():
 	xbmcplugin.setContent(HANDLE, 'videos')
 
-	items = (
+	items = [
 		(S_MOVIES, {'action': 'section', 'kind': 'movie'}),
 		(S_SERIES, {'action': 'section', 'kind': 'tv'}),
 		(S_ANIME, {'action': 'section', 'kind': 'anime'}),
-		(S_SEARCH_MOVIES, {'action': 'search', 'media': 'movie'}),
-		(S_SEARCH_SERIES, {'action': 'search', 'media': 'tv'}),
-	)
+		(S_SEARCH, {'action': 'search_menu'}),
+	]
+	if _mdblist_ready():
+		items.append((S_MDBLIST_UPNEXT, {'action': 'mdblist_upnext'}))
+		items.append((S_MDBLIST_WATCHLIST, {'action': 'mdblist_watchlist'}))
+		items.append((S_MDBLIST_MY_LISTS, {'action': 'mdblist_my_lists'}))
+		items.append((S_MDBLIST_LIKED_LISTS, {'action': 'mdblist_liked_lists'}))
 	for string_id, params in items:
 		li = xbmcgui.ListItem(label=_(string_id))
 		url = '%s?%s' % (BASE_URL, urlencode(params))
@@ -917,14 +1459,16 @@ def play_external(params):
 	# one-click playback from TMDb Helper.
 	auto = (ADDON.getSetting('external_auto_play') == 'true'
 	        or ADDON.getSetting('auto_play_best') == 'true')
-	chosen = 0
-	if not auto:
+	if auto:
+		url = _first_working_stream(streams)
+	else:
 		labels = [stream_display(stream)[0] for stream in streams]
 		chosen = xbmcgui.Dialog().select(_(S_PICK_SOURCE), labels)
 		if chosen < 0:
 			xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
 			return
-	resolve_and_play(streams[chosen]['url'], meta, None, card)
+		url = streams[chosen]['url']
+	resolve_and_play(url, meta, None, card)
 
 
 def _movie_imdb(params):
@@ -951,6 +1495,8 @@ def router():
 	action = params.get('action')
 	if action == 'section':
 		list_section(params.get('kind'))
+	elif action == 'resume_list':
+		list_resume(params.get('kind'))
 	elif action == 'catalog':
 		_browse(params.get('kind'), params.get('catalog'), _screen(params),
 		        params.get('genre'), params.get('year'))
@@ -958,16 +1504,34 @@ def router():
 		list_genres(params.get('kind'))
 	elif action == 'years':
 		list_years(params.get('kind'))
+	elif action == 'search_menu':
+		search_menu()
 	elif action == 'search':
-		media = 'movie' if params.get('media') == 'movie' else 'tv'
-		prompt = S_SEARCH_MOVIES_PROMPT if media == 'movie' else S_SEARCH_SERIES_PROMPT
-		search(media, prompt, _screen(params), params.get('query'))
+		# Our own "New search"/history entries, and Kodi's own global search
+		# (plugin://.../?action=search&query=TERM) both land here.
+		search_all(params.get('query'), _screen(params))
 	elif action == 'play_external':
 		play_external(params)
 	elif action == 'install_th_player':
 		install_th_player()
 	elif action == 'open_settings':
 		open_settings()
+	elif action == 'clear_cache':
+		clear_cache()
+	elif action == 'mdblist_connect':
+		mdblist_connect()
+	elif action == 'mdblist_disconnect':
+		mdblist_disconnect()
+	elif action == 'mdblist_upnext':
+		list_upnext()
+	elif action == 'mdblist_watchlist':
+		list_mdblist_watchlist()
+	elif action == 'mdblist_my_lists':
+		list_mdblist_lists('user')
+	elif action == 'mdblist_liked_lists':
+		list_mdblist_lists('liked')
+	elif action == 'mdblist_list_items':
+		list_mdblist_list_items(params.get('listid'))
 	elif action in ('movie_streams', 'movie_play_best'):
 		imdb_id = _movie_imdb(params)
 		meta = dict(_scrobble_meta(params), imdbnumber=imdb_id) if imdb_id else {}

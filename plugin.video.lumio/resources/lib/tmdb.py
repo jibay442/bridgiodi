@@ -19,9 +19,11 @@ from . import cache, kodi, net
 API = 'https://api.themoviedb.org/3'
 IMAGE_BASE = 'https://image.tmdb.org/t/p/'
 
-# English on purpose: TMDB does no server-side translation fallback, so a
-# localised request returns empty plots on niche titles instead of English ones.
-LANGUAGE = 'en-US'
+# Fallback only: TMDB does no server-side translation fallback, so a
+# localised request returns empty plots on niche titles instead of English
+# ones. details() below re-fetches in English to patch those gaps; browse()
+# uses the local language as-is since list screens don't carry a plot fallback.
+FALLBACK_LANGUAGE = 'en-US'
 
 POSTER_SIZE = 'w500'
 FANART_SIZE = 'w1280'
@@ -42,6 +44,12 @@ ANIME_BY_LANGUAGE = 1  # broad: any Japanese animation
 # A rating sort with no vote floor returns titles with two votes.
 MIN_VOTES = '200'
 
+# Short enough to catch ranking/catalog drift (popularity and box-office
+# order shift day to day), long enough that flipping back and forth across
+# screens - or revisiting the same folder a minute later - doesn't re-hit
+# TMDB for content that hasn't changed.
+BROWSE_TTL = 6 * 3600
+
 
 class TmdbError(Exception):
 	pass
@@ -55,11 +63,11 @@ def image(path, size=POSTER_SIZE):
 	return '%s%s%s' % (IMAGE_BASE, size, path) if path else ''
 
 
-def _call(path, **params):
+def _call(path, language=None, **params):
 	api_key = kodi.setting('tmdb_api_key').strip()
 	if not api_key:
 		raise NoApiKey('no TMDB api key configured')
-	query = {'api_key': api_key, 'language': LANGUAGE}
+	query = {'api_key': api_key, 'language': language or kodi.tmdb_language()}
 	query.update({k: v for k, v in params.items() if v not in (None, '')})
 	data = net.get_json('%s%s?%s' % (API, path, urlencode(query)))
 	if isinstance(data, dict) and data.get('success') is False:
@@ -127,11 +135,16 @@ def details(media, tmdb_id):
 	if cached:
 		return cached
 
-	if media == 'movie':
-		# Movie details already include imdb_id; TV details do not.
-		row = _call('/movie/%s' % tmdb_id, append_to_response='credits,release_dates')
-	else:
-		row = _call('/tv/%s' % tmdb_id, append_to_response='external_ids,credits,content_ratings')
+	append = 'credits,release_dates' if media == 'movie' else 'external_ids,credits,content_ratings'
+	path = '/movie/%s' % tmdb_id if media == 'movie' else '/tv/%s' % tmdb_id
+	row = _call(path, append_to_response=append)
+
+	if not row.get('overview') and kodi.tmdb_language() != FALLBACK_LANGUAGE:
+		# Niche title with no translation in the local language: patch the
+		# text fields from the English response instead of showing them blank.
+		fallback = _call(path, language=FALLBACK_LANGUAGE, append_to_response=append)
+		row['overview'] = fallback.get('overview') or row.get('overview')
+		row['tagline'] = fallback.get('tagline') or row.get('tagline')
 
 	item = _list_item(row, media)
 	item.update({
@@ -181,12 +194,29 @@ def _anime_params():
 	return {'with_genres': ANIME_GENRE, 'with_keywords': ANIME_KEYWORDS}
 
 
+def _browse_cache_key(kind, catalog_id, screen, genre, year):
+	# Every input that can change the result set has to be part of the key,
+	# or a stale answer from a different language/filter combo gets served.
+	return '|'.join(str(part) for part in (
+		kind, catalog_id, screen, genre or '', year or '',
+		kodi.tmdb_language(),
+		kodi.setting_int('anime_filter', ANIME_BY_KEYWORD),
+		kodi.setting_bool('tmdb_include_adult'),
+	))
+
+
 def browse(kind, catalog_id, screen=1, genre=None, year=None):
 	"""(items, has_more) for one screen of a catalogue.
 
 	kind is 'movie', 'tv', 'anime' or 'anime_movie'; catalog_id is 'popular',
 	'box_office', 'top_rated', 'genre' or 'year'.
 	"""
+	namespace = 'tmdb_browse'
+	key = _browse_cache_key(kind, catalog_id, screen, genre, year)
+	cached = cache.get(namespace, key, ttl=BROWSE_TTL)
+	if cached is not None:
+		return cached
+
 	media = 'movie' if kind in ('movie', 'anime_movie') else 'tv'
 	is_anime = kind in ('anime', 'anime_movie')
 	filtered = is_anime or catalog_id in ('genre', 'year', 'box_office')
@@ -195,7 +225,8 @@ def browse(kind, catalog_id, screen=1, genre=None, year=None):
 		# /movie/popular and /tv/top_rated are already vote-weighted and
 		# cheaper than an equivalent discover call, so prefer them.
 		rows, has_more = _pages('/%s/%s' % (media, catalog_id), {}, screen)
-		return [_list_item(row, media) for row in rows], has_more
+		result = [[_list_item(row, media) for row in rows], has_more]
+		return cache.put(namespace, key, result)
 
 	params = _anime_params() if is_anime else {}
 	if catalog_id == 'genre' and genre:
@@ -213,7 +244,8 @@ def browse(kind, catalog_id, screen=1, genre=None, year=None):
 	params['include_adult'] = 'true' if kodi.setting_bool('tmdb_include_adult') else 'false'
 
 	rows, has_more = _pages('/discover/%s' % media, params, screen)
-	return [_list_item(row, media) for row in rows], has_more
+	result = [[_list_item(row, media) for row in rows], has_more]
+	return cache.put(namespace, key, result)
 
 
 def search(media, query, screen=1):

@@ -345,3 +345,151 @@ msgstr "Lancer directement depuis TMDb Helper"
 msgctxt "#30134"
 msgid "Skips the source list for playback started outside Lumio, so TMDb Helper is one click. Turn this off to be asked there too. Independent of the setting under Filter, which only covers browsing inside Lumio."
 msgstr "Saute la liste des sources pour les lectures lancees hors de Lumio, pour que TMDb Helper soit en un clic. Desactive-le pour qu'on te demande la aussi. Independant du reglage de l'onglet Filter, qui ne concerne que la navigation dans Lumio."
+
+msgctxt "#30135"
+msgid "MDBList"
+msgstr "MDBList"
+
+msgctxt "#30136"
+msgid "Up Next & watched sync"
+msgstr "Up Next et suivi vu"
+
+msgctxt "#30137"
+msgid "Enable MDBList integration"
+msgstr "Activer l'integration MDBList"
+
+msgctxt "#30138"
+msgid "Adds an optional continue-watching section sourced from MDBList's Up Next, and reports watched movies/episodes back to your MDBList account. Independent of TMDB and Cinemeta, which remain the catalogue and episode-list sources."
+msgstr "Ajoute une section optionnelle de reprise de lecture basee sur le Up Next de MDBList, et signale les films/episodes vus a ton compte MDBList. Independant de TMDB et Cinemeta, qui restent les sources de catalogue et de liste d'episodes."
+
+msgctxt "#30139"
+msgid "MDBList client ID"
+msgstr "Client ID MDBList"
+
+msgctxt "#30140"
+msgid "From a Device Code app you register at mdblist.com/developer. Needed to connect an account."
+msgstr "Celui d'une app Device Code enregistree sur mdblist.com/developer. Necessaire pour connecter un compte."
+
+msgctxt "#30141"
+msgid "Connect MDBList account"
+msgstr "Connecter un compte MDBList"
+
+msgctxt "#30142"
+msgid "Starts the device sign-in flow and shows a code to enter on mdblist.com."
+msgstr "Lance la connexion par code et affiche un code a saisir sur mdblist.com."
+
+msgctxt "#30143"
+msgid "Disconnect MDBList account"
+msgstr "Deconnecter le compte MDBList"
+
+msgctxt "#30144"
+msgid "Up Next"
+msgstr "Up Next"
+
+msgctxt "#30145"
+msgid "No MDBList client ID configured. Set one in settings first."
+msgstr "Aucun client ID MDBList configure. Renseigne-le d'abord dans les reglages."
+
+msgctxt "#30146"
+msgid "Go to %s and enter code: %s"
+msgstr "Va sur %s et entre le code : %s"
+
+msgctxt "#30147"
+msgid "Waiting for approval..."
+msgstr "En attente de validation..."
+
+msgctxt "#30148"
+msgid "MDBList account connected"
+msgstr "Compte MDBList connecte"
+
+msgctxt "#30149"
+msgid "Connection cancelled"
+msgstr "Connexion annulee"
+
+msgctxt "#30150"
+msgid "Could not connect to MDBList: %s"
+msgstr "Connexion a MDBList impossible : %s"
+
+msgctxt "#30151"
+msgid "MDBList account disconnected"
+msgstr "Compte MDBList deconnecte"
+
+msgctxt "#30152"
+msgid "MDBList account not connected"
+msgstr "Compte MDBList non connecte"
+
+msgctxt "#30153"
+msgid "Nothing in progress on MDBList"
+msgstr "Rien en cours sur MDBList"
+
+msgctxt "#30154"
+msgid "Could not load Up Next: %s"
+msgstr "Chargement du Up Next impossible : %s"
+
+msgctxt "#30155"
+msgid "MDBList watchlist"
+msgstr "Watchlist MDBList"
+
+msgctxt "#30156"
+msgid "Nothing on your MDBList watchlist"
+msgstr "Rien dans ta watchlist MDBList"
+
+msgctxt "#30157"
+msgid "My MDBList lists"
+msgstr "Mes listes MDBList"
+
+msgctxt "#30158"
+msgid "Liked MDBList lists"
+msgstr "Listes MDBList likees"
+
+msgctxt "#30159"
+msgid "No lists found"
+msgstr "Aucune liste trouvee"
+
+msgctxt "#30160"
+msgid "%d cache file(s) cleared"
+msgstr "%d fichier(s) de cache supprime(s)"
+
+msgctxt "#30161"
+msgid "Clear cache"
+msgstr "Vider le cache"
+
+msgctxt "#30162"
+msgid "Deletes cached TMDB and Cinemeta data (catalog pages, details, episode lists), forcing a refetch next time. Does not disconnect your MDBList account."
+msgstr "Supprime les donnees TMDB et Cinemeta en cache (pages de catalogue, fiches, listes d'episodes), forcant un rechargement la prochaine fois. Ne deconnecte pas ton compte MDBList."
+
+msgctxt "#30163"
+msgid "Remember playback position"
+msgstr "Se souvenir de la position de lecture"
+
+msgctxt "#30164"
+msgid "Resumes movies and episodes where you left off, even without a Kodi library entry, TMDb Helper or Trakt. Turn off if you'd rather rely on those instead."
+msgstr "Reprend les films et episodes ou tu les as laisses, meme sans entree dans la bibliotheque Kodi, TMDb Helper ou Trakt. Desactive si tu preferes t'appuyer sur eux."
+
+msgctxt "#30165"
+msgid "Force original-language audio"
+msgstr "Forcer l'audio en langue d'origine"
+
+msgctxt "#30166"
+msgid "Switches to the audio track matching TMDB's original language right after playback starts, instead of trusting the file's own \"default\" flag - which is routinely set on a dub, not the original. Requires TMDB to know the title (a TMDB id must have been resolved)."
+msgstr "Bascule sur la piste audio correspondant a la langue d'origine TMDB juste apres le debut de la lecture, plutot que de se fier au flag \"default\" du fichier - qui est souvent pose sur un doublage, pas la VO. Necessite que TMDB connaisse le titre (un id TMDB doit avoir ete resolu)."
+
+msgctxt "#30167"
+msgid "Resume playback"
+msgstr "Reprendre la lecture"
+
+msgctxt "#30168"
+msgid "Nothing in progress"
+msgstr "Rien en cours"
+
+msgctxt "#30170"
+msgid "Search"
+msgstr "Rechercher"
+
+msgctxt "#30171"
+msgid "Search a title"
+msgstr "Rechercher un titre"
+
+msgctxt "#30174"
+msgid "New search"
+msgstr "Nouvelle recherche"
