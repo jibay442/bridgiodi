@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <settings version="1">
-	<section id="plugin.video.lumio">
+	<section id="plugin.video.bridgiodi">
 		<category id="general" label="30000">
 			<group id="1">
 				<setting id="debug_logging" type="boolean" label="30002" help="30003">
@@ -10,7 +10,7 @@
 				</setting>
 				<setting id="clear_cache_action" type="action" label="30161" help="30162">
 					<level>0</level>
-					<data>RunPlugin(plugin://plugin.video.lumio/?action=clear_cache)</data>
+					<data>RunPlugin(plugin://plugin.video.bridgiodi/?action=clear_cache)</data>
 					<control type="button" format="action"/>
 				</setting>
 				<setting id="local_resume" type="boolean" label="30163" help="30164">
@@ -60,7 +60,7 @@
 				</setting>
 				<setting id="install_th_player_action" type="action" label="30128" help="30132">
 					<level>0</level>
-					<data>RunPlugin(plugin://plugin.video.lumio/?action=install_th_player)</data>
+					<data>RunPlugin(plugin://plugin.video.bridgiodi/?action=install_th_player)</data>
 					<control type="button" format="action">
 						<close>true</close>
 					</control>
@@ -91,7 +91,7 @@
 				</setting>
 				<setting id="mdblist_connect_action" type="action" label="30141" help="30142" parent="mdblist_enabled">
 					<level>0</level>
-					<data>RunPlugin(plugin://plugin.video.lumio/?action=mdblist_connect)</data>
+					<data>RunPlugin(plugin://plugin.video.bridgiodi/?action=mdblist_connect)</data>
 					<dependencies>
 						<dependency type="visible">
 							<condition operator="is" setting="mdblist_enabled">true</condition>
@@ -101,7 +101,7 @@
 				</setting>
 				<setting id="mdblist_disconnect_action" type="action" label="30143" parent="mdblist_enabled">
 					<level>0</level>
-					<data>RunPlugin(plugin://plugin.video.lumio/?action=mdblist_disconnect)</data>
+					<data>RunPlugin(plugin://plugin.video.bridgiodi/?action=mdblist_disconnect)</data>
 					<dependencies>
 						<dependency type="visible">
 							<condition operator="is" setting="mdblist_enabled">true</condition>
@@ -113,7 +113,7 @@
 		</category>
 		<category id="addon" label="30025">
 			<group id="1">
-				<setting id="manifest_url" type="string" label="30001" help="30026">
+				<setting id="manifest_url_1" type="string" label="30001" help="30026">
 					<level>0</level>
 					<default/>
 					<constraints>
@@ -121,6 +121,46 @@
 					</constraints>
 					<control type="edit" format="string">
 						<heading>30001</heading>
+					</control>
+				</setting>
+				<setting id="manifest_url_2" type="string" label="30175" help="30026">
+					<level>0</level>
+					<default/>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<control type="edit" format="string">
+						<heading>30175</heading>
+					</control>
+				</setting>
+				<setting id="manifest_url_3" type="string" label="30176" help="30026">
+					<level>0</level>
+					<default/>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<control type="edit" format="string">
+						<heading>30176</heading>
+					</control>
+				</setting>
+				<setting id="manifest_url_4" type="string" label="30177" help="30026">
+					<level>0</level>
+					<default/>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<control type="edit" format="string">
+						<heading>30177</heading>
+					</control>
+				</setting>
+				<setting id="manifest_url_5" type="string" label="30178" help="30026">
+					<level>0</level>
+					<default/>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<control type="edit" format="string">
+						<heading>30178</heading>
 					</control>
 				</setting>
 			</group>
@@ -134,7 +174,7 @@
 				</setting>
 				<setting id="sort_priority_1" type="integer" label="30080" help="30081" parent="sort_by_quality">
 					<level>0</level>
-					<default>2</default>
+					<default>0</default>
 					<constraints>
 						<options>
 							<option label="30088">0</option>
@@ -156,7 +196,7 @@
 				</setting>
 				<setting id="sort_priority_2" type="integer" label="30082" help="30081" parent="sort_by_quality">
 					<level>0</level>
-					<default>4</default>
+					<default>0</default>
 					<constraints>
 						<options>
 							<option label="30088">0</option>
@@ -178,7 +218,7 @@
 				</setting>
 				<setting id="sort_priority_3" type="integer" label="30083" help="30081" parent="sort_by_quality">
 					<level>0</level>
-					<default>3</default>
+					<default>0</default>
 					<constraints>
 						<options>
 							<option label="30088">0</option>
@@ -200,7 +240,7 @@
 				</setting>
 				<setting id="sort_priority_4" type="integer" label="30084" help="30081" parent="sort_by_quality">
 					<level>0</level>
-					<default>1</default>
+					<default>0</default>
 					<constraints>
 						<options>
 							<option label="30088">0</option>

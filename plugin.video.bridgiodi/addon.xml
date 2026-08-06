@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="plugin.video.bridgiodi" name="Bridgiodi" version="1.0.0" provider-name="jibay442">
+	<requires>
+		<import addon="xbmc.python" version="3.0.0"/>
+	</requires>
+	<extension point="xbmc.python.pluginsource" library="default.py">
+		<provides>video</provides>
+	</extension>
+	<extension point="xbmc.addon.metadata">
+		<summary lang="en_GB">Play movies/episodes via one or more personal stream-only Stremio addons</summary>
+		<description lang="en_GB">Standalone player for Stremio addons that only expose a "stream" resource (no catalog), such as Lumio.tv. Configure one or more of them, browse TMDB catalogues for movies, TV shows and anime, or search, then pick a stream to play directly, bypassing any torrent/debrid-oriented scraper pipeline. Requires a free TMDB API key.[CR][CR]This product uses TMDB and the TMDB APIs but is not endorsed, certified, or otherwise approved by TMDB.</description>
+		<platform>all</platform>
+		<license>MIT</license>
+		<assets>
+			<icon>resources/icon.png</icon>
+			<fanart>resources/fanart.jpg</fanart>
+		</assets>
+	</extension>
+</addon>

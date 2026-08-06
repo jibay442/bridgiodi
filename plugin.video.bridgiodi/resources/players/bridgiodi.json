@@ -1,0 +1,12 @@
+{
+	"name": "Bridgiodi",
+	"plugin": "plugin.video.bridgiodi",
+	"priority": 100,
+	"is_resolvable": "true",
+	"assert": {
+		"play_movie": ["tmdb"],
+		"play_episode": ["tmdb", "season", "episode"]
+	},
+	"play_movie": "plugin://plugin.video.bridgiodi/?action=play_external&type=movie&tmdb={tmdb}&title={title_url}&year={year}",
+	"play_episode": "plugin://plugin.video.bridgiodi/?action=play_external&type=episode&tmdb={tmdb}&season={season}&episode={episode}&showname={showname_url}&title={title_url}"
+}
