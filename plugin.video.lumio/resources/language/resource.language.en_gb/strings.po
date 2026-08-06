@@ -457,3 +457,39 @@ msgstr ""
 msgctxt "#30162"
 msgid "Deletes cached TMDB and Cinemeta data (catalog pages, details, episode lists), forcing a refetch next time. Does not disconnect your MDBList account."
 msgstr ""
+
+msgctxt "#30163"
+msgid "Remember playback position"
+msgstr ""
+
+msgctxt "#30164"
+msgid "Resumes movies and episodes where you left off, even without a Kodi library entry, TMDb Helper or Trakt. Turn off if you'd rather rely on those instead."
+msgstr ""
+
+msgctxt "#30165"
+msgid "Force original-language audio"
+msgstr ""
+
+msgctxt "#30166"
+msgid "Switches to the audio track matching TMDB's original language right after playback starts, instead of trusting the file's own \"default\" flag - which is routinely set on a dub, not the original. Requires TMDB to know the title (a TMDB id must have been resolved)."
+msgstr ""
+
+msgctxt "#30167"
+msgid "Resume playback"
+msgstr ""
+
+msgctxt "#30168"
+msgid "Nothing in progress"
+msgstr ""
+
+msgctxt "#30170"
+msgid "Search"
+msgstr ""
+
+msgctxt "#30171"
+msgid "Search a title"
+msgstr ""
+
+msgctxt "#30174"
+msgid "New search"
+msgstr ""

@@ -13,6 +13,16 @@
 					<data>RunPlugin(plugin://plugin.video.lumio/?action=clear_cache)</data>
 					<control type="button" format="action"/>
 				</setting>
+				<setting id="local_resume" type="boolean" label="30163" help="30164">
+					<level>0</level>
+					<default>true</default>
+					<control type="toggle"/>
+				</setting>
+				<setting id="force_original_audio" type="boolean" label="30165" help="30166">
+					<level>0</level>
+					<default>false</default>
+					<control type="toggle"/>
+				</setting>
 			</group>
 		</category>
 		<category id="tmdb" label="30105">
