@@ -223,12 +223,15 @@ def stream_display(stream):
 		if m:
 			size_text = m.group(0)
 
+	# Flags and size go BEFORE the name, not after: these filenames are
+	# often long enough that Kodi truncates the label with "...", which
+	# silently hid the badges when they were appended at the end instead.
 	label = name
 	flags = _quality_flags(_stream_blob(stream), behavior)
 	if flags:
-		label = '%s  [%s]' % (label, '|'.join(flags))
+		label = '[%s]  %s' % ('|'.join(flags), label)
 	if size_text:
-		label = '%s  [%s]' % (label, size_text)
+		label = '[%s]  %s' % (size_text, label)
 	return label, name
 
 
