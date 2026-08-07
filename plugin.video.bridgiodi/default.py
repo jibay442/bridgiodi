@@ -10,7 +10,7 @@ import xbmcgui
 import xbmcplugin
 import xbmcaddon
 
-from resources.lib import cache, mdblist, net, tmdb, tmdbhelper
+from resources.lib import cache, mdblist, net, romanize, tmdb, tmdbhelper
 
 ADDON = xbmcaddon.Addon()
 ADDON_NAME = ADDON.getAddonInfo('name')
@@ -935,7 +935,11 @@ def _catalog_label(item):
 	otherwise. apply_info() still sets BOTH title and originaltitle on the
 	info tag regardless, this only changes what the list shows."""
 	if ADDON.getSetting('show_original_title') == 'true':
-		return item.get('originaltitle') or item.get('title') or 'Unknown'
+		original = item.get('originaltitle')
+		if original:
+			if ADDON.getSetting('romanize_titles') == 'true':
+				return romanize.romanize(original)
+			return original
 	return item.get('title') or 'Unknown'
 
 

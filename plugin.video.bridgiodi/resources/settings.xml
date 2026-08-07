@@ -58,6 +58,16 @@
 					<default>false</default>
 					<control type="toggle"/>
 				</setting>
+				<setting id="romanize_titles" type="boolean" label="30181" help="30182" parent="show_original_title">
+					<level>0</level>
+					<default>true</default>
+					<dependencies>
+						<dependency type="visible">
+							<condition operator="is" setting="show_original_title">true</condition>
+						</dependency>
+					</dependencies>
+					<control type="toggle"/>
+				</setting>
 				<setting id="external_auto_play" type="boolean" label="30133" help="30134">
 					<level>0</level>
 					<default>true</default>

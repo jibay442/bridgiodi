@@ -1,0 +1,8 @@
+text-unidecode is licensed under the Artistic License, a permissive license
+compatible with this addon's MIT license (unlike the GPL-licensed original
+Unidecode package this is a fork of).
+
+https://opensource.org/licenses/Artistic-Perl-1.0
+https://pypi.org/project/text-unidecode/
+
+Copyright (c) 2016, Mikhail Korobov

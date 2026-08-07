@@ -517,3 +517,11 @@ msgstr ""
 msgctxt "#30180"
 msgid "Shows TMDB's original title instead of the localised one in catalogue and search lists, when TMDB has one. The info screen still shows both."
 msgstr ""
+
+msgctxt "#30181"
+msgid "Romanize non-Latin titles"
+msgstr ""
+
+msgctxt "#30182"
+msgid "Transliterates original titles written in Japanese, Chinese, Korean, Cyrillic, Greek or Arabic script into the Latin alphabet, so they show as readable text instead of missing-glyph boxes. Best-effort only - Japanese kanji come out with their Chinese reading, not true romaji."
+msgstr ""

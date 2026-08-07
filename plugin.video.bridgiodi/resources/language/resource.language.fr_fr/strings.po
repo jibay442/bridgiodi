@@ -517,3 +517,11 @@ msgstr "Afficher les titres en langue d'origine"
 msgctxt "#30180"
 msgid "Shows TMDB's original title instead of the localised one in catalogue and search lists, when TMDB has one. The info screen still shows both."
 msgstr "Affiche le titre original TMDB au lieu du titre traduit dans les catalogues et la recherche, quand TMDB en a un. La fiche complete montre toujours les deux."
+
+msgctxt "#30181"
+msgid "Romanize non-Latin titles"
+msgstr "Romaniser les titres non-latins"
+
+msgctxt "#30182"
+msgid "Transliterates original titles written in Japanese, Chinese, Korean, Cyrillic, Greek or Arabic script into the Latin alphabet, so they show as readable text instead of missing-glyph boxes. Best-effort only - Japanese kanji come out with their Chinese reading, not true romaji."
+msgstr "Translittere les titres originaux ecrits en japonais, chinois, coreen, cyrillique, grec ou arabe vers l'alphabet latin, pour qu'ils s'affichent lisiblement au lieu de carres. Best-effort seulement - les kanji japonais ressortent avec leur lecture chinoise, pas le vrai romaji."
