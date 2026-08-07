@@ -53,6 +53,11 @@
 					<default>false</default>
 					<control type="toggle"/>
 				</setting>
+				<setting id="show_original_title" type="boolean" label="30179" help="30180">
+					<level>0</level>
+					<default>false</default>
+					<control type="toggle"/>
+				</setting>
 				<setting id="external_auto_play" type="boolean" label="30133" help="30134">
 					<level>0</level>
 					<default>true</default>

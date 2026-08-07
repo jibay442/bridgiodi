@@ -224,9 +224,43 @@ def stream_display(stream):
 			size_text = m.group(0)
 
 	label = name
+	flags = _quality_flags(_stream_blob(stream), behavior)
+	if flags:
+		label = '%s  [%s]' % (label, '|'.join(flags))
 	if size_text:
 		label = '%s  [%s]' % (label, size_text)
 	return label, name
+
+
+def _quality_flags(blob, behavior):
+	"""Short plain-text badges (4K, HDR10+, DV, ATMOS, 7.1, HEVC...) built
+	from the same detectors the quality sort uses, so the stream list shows
+	at a glance what the ranking is actually reacting to. Kept to plain
+	ASCII on purpose - emoji/symbol badges hit the same missing-glyph "tofu
+	box" issue as CJK text on skins whose font doesn't cover them."""
+	flags = []
+	for pattern, label in _RESOLUTION_FLAGS:
+		if pattern.search(blob):
+			flags.append(label)
+			break
+	if re.search(r'hdr\s*10\s*\+|hdr\+', blob, re.I):
+		flags.append('HDR10+')
+	elif re.search(r'\bhdr(10)?\b', blob, re.I):
+		flags.append('HDR')
+	if re.search(r'dolby\s*vision|\bdovi\b|\bdv\b', blob, re.I):
+		flags.append('DV')
+	for pattern, label in _AUDIO_FORMAT_FLAGS:
+		if pattern.search(blob):
+			flags.append(label)
+			break
+	channels = max((m.group(0) for m in _AUDIO_CHANNELS.finditer(blob)), key=len, default='')
+	if channels:
+		flags.append(channels.replace(',', '.'))
+	for pattern, label in _CODEC_FLAGS:
+		if pattern.search(blob):
+			flags.append(label)
+			break
+	return flags
 
 
 def _stream_blob(stream):
@@ -367,6 +401,15 @@ def _rank_codec(blob, behavior):
 		if pattern.search(blob):
 			return rank
 	return 0
+
+
+# Display labels for _quality_flags, reusing the same compiled patterns as
+# the ranking tables above (highest-ranked pattern first in each) so the
+# badges shown never drift out of sync with what the sort is reacting to.
+_RESOLUTION_FLAGS = tuple(zip((p for p, _r in _RESOLUTION_RANK), ('4K', '1080p', '720p')))
+_AUDIO_FORMAT_FLAGS = tuple(zip(
+	(p for p, _r in _AUDIO_FORMAT_RANK), ('ATMOS', 'TrueHD', 'DTS-HD', 'EAC3', 'AC3')))
+_CODEC_FLAGS = tuple(zip((p for p, _r in _CODEC_RANK), ('AV1', 'HEVC', 'AVC')))
 
 
 # Criterion id (as stored in the sort_priority_N settings) -> ranking function.
@@ -854,7 +897,8 @@ def render_items(items, next_page_params=None):
 	for item in items:
 		year = item.get('year') or ''
 		title = item.get('title') or 'Unknown'
-		li = xbmcgui.ListItem(label='%s (%s)' % (title, year) if year else title)
+		label = _catalog_label(item)
+		li = xbmcgui.ListItem(label='%s (%s)' % (label, year) if year else label)
 		apply_info(li, item, 'movie' if is_movie else 'tvshow')
 		is_leaf_movie = is_movie and auto_play
 		if is_leaf_movie:
@@ -880,6 +924,16 @@ def render_items(items, next_page_params=None):
 		url = '%s?%s' % (BASE_URL, urlencode(next_page_params))
 		xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
 	xbmcplugin.endOfDirectory(HANDLE)
+
+
+def _catalog_label(item):
+	"""Display label for a catalogue row - the original-language title when
+	the setting is on and TMDB actually has one, the localised title
+	otherwise. apply_info() still sets BOTH title and originaltitle on the
+	info tag regardless, this only changes what the list shows."""
+	if ADDON.getSetting('show_original_title') == 'true':
+		return item.get('originaltitle') or item.get('title') or 'Unknown'
+	return item.get('title') or 'Unknown'
 
 
 def _browse(kind, catalog_id, screen=1, genre=None, year=None):
@@ -930,7 +984,8 @@ def render_mixed_items(items, next_page_params=None):
 		is_movie = (item.get('media') or 'movie') == 'movie'
 		year = item.get('year') or ''
 		title = item.get('title') or 'Unknown'
-		li = xbmcgui.ListItem(label='%s (%s)' % (title, year) if year else title)
+		label = _catalog_label(item)
+		li = xbmcgui.ListItem(label='%s (%s)' % (label, year) if year else label)
 		apply_info(li, item, 'movie' if is_movie else 'tvshow')
 		target_action = ('movie_play_best' if auto_play else 'movie_streams') if is_movie else 'seasons'
 		is_leaf_movie = is_movie and auto_play

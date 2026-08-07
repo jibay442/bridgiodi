@@ -509,3 +509,11 @@ msgstr ""
 msgctxt "#30178"
 msgid "Stremio addon manifest URL #5"
 msgstr ""
+
+msgctxt "#30179"
+msgid "Show original-language titles"
+msgstr ""
+
+msgctxt "#30180"
+msgid "Shows TMDB's original title instead of the localised one in catalogue and search lists, when TMDB has one. The info screen still shows both."
+msgstr ""
