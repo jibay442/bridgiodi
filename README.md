@@ -31,7 +31,7 @@ Kodi addon that plays streams from one or more stream-only Stremio addons direct
 - Combined movie+series search with history, and Kodi global-search support.
 - Optional original-language audio forcing (overrides a file's own "default" flag, which is often a dub).
 - Optional [MDBList](https://mdblist.com) integration: Up Next, watchlist, custom/liked lists, watched-status sync.
-- TMDb Helper player integration (for Trakt-backed "continue watching").
+- TMDb Helper player integration (for Trakt-backed "continue watching"), registered as two players: **Bridgiodi** plays the best-ranked source straight away, **Bridgiodi (select source)** opens TMDb Helper's own source picker. Both are always available — switch per item with **Select player** in the context menu (the Menu button on a remote).
 - For Trakt watched-status/resume sync: install the official **Trakt** addon (`script.trakt`), or use Bridgiodi as the player behind **TMDb Helper**, which has its own Trakt integration.
 
 ## Known limitations

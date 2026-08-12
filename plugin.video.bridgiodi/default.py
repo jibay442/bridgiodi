@@ -672,7 +672,16 @@ def _provider_host(index):
 	return ''
 
 
-def list_streams(kodi_type, video_id, scrobble_meta=None, card=None):
+def list_streams(kodi_type, video_id, scrobble_meta=None, card=None, label_as_title=False):
+	"""Directory of every playable source for one item.
+
+	label_as_title also writes each source's label into the info tag title,
+	which is normally exactly what must NOT happen (see below) - it is for the
+	listing TMDb Helper reads over JSON-RPC and never shows: its own picker
+	labels rows from the title and would otherwise repeat the film's name on
+	every row. That listing is throwaway, the item it plays is re-resolved
+	through action=resolve and gets a clean card.
+	"""
 	card = card if card is not None else dict(scrobble_meta or {})
 	streams = playable_streams(kodi_type, video_id)
 	if not streams:
@@ -697,7 +706,8 @@ def list_streams(kodi_type, video_id, scrobble_meta=None, card=None):
 		# The release filename belongs in the LABEL only, so you can still tell
 		# sources apart. It used to overwrite the title in the info tag, which
 		# is precisely why Kodi and Kore showed a filename instead of the film.
-		apply_info(li, card, card.get('mediatype') or 'video')
+		apply_info(li, dict(card, title=label) if label_as_title else card,
+		           card.get('mediatype') or 'video')
 		li.setProperty('IsPlayable', 'true')
 		play_params = dict(scrobble_meta or {}, action='resolve', url=url)
 		if card.get('tmdb'):
@@ -1560,12 +1570,13 @@ def _scrobble_meta(params):
 	return meta
 
 
-def play_external(params):
-	"""Entry point used by TMDb Helper (see resources/players/bridgiodi.json).
+def _external_request(params):
+	"""(kodi_type, video_id, scrobble meta, card) for a TMDb Helper request.
 
-	One resolvable entry point rather than two players: with auto-play off it
-	shows a modal source picker instead of a directory, because a player
-	declared resolvable has to answer with setResolvedUrl either way.
+	Returns None - after telling the user why - when the item cannot be
+	identified. Shared by the two entry points TMDb Helper is given: one that
+	resolves a stream straight away, one that hands the list back for its own
+	picker.
 	"""
 	is_episode = params.get('type') == 'episode'
 	if is_episode:
@@ -1579,8 +1590,7 @@ def play_external(params):
 		imdb_id = _movie_imdb(params)
 	if not imdb_id:
 		xbmcgui.Dialog().notification(ADDON_NAME, _(S_NO_IMDB), xbmcgui.NOTIFICATION_INFO)
-		xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
-		return
+		return None
 
 	meta = {'mediatype': 'episode' if is_episode else 'movie', 'imdbnumber': imdb_id,
 	        'title': params.get('title') or '', 'year': params.get('year') or ''}
@@ -1591,9 +1601,42 @@ def play_external(params):
 	else:
 		video_id = imdb_id
 	meta = _scrobble_meta(meta)
-	card = _card(params, meta)
+	return 'series' if is_episode else 'movie', video_id, meta, _card(params, meta)
 
-	streams = playable_streams('series' if is_episode else 'movie', video_id)
+
+def list_external(params):
+	"""Source list for TMDb Helper, as a directory it reads itself.
+
+	Second half of the "choose the source" player (see
+	resources/players/bridgiodi_select.json): its {"dialog": "true"} step makes
+	TMDb Helper pull this listing over JSON-RPC, show its own picker, and then
+	resolve the chosen item itself. Going back through TMDb Helper is the point
+	- it only reports to Trakt what it resolved, so a listing it merely opens
+	as a folder would play fine and scrobble nothing.
+	"""
+	request = _external_request(params)
+	if not request:
+		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+		return
+	kodi_type, video_id, meta, card = request
+	list_streams(kodi_type, video_id, meta, card, label_as_title=True)
+
+
+def play_external(params):
+	"""Entry point used by TMDb Helper (see resources/players/bridgiodi.json).
+
+	Declared resolvable, so it has to answer with setResolvedUrl either way:
+	with auto-play off it asks through a modal source picker rather than a
+	directory. Handing the sources back as a directory instead is
+	list_external, which is what the second player file uses.
+	"""
+	request = _external_request(params)
+	if not request:
+		xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
+		return
+	kodi_type, video_id, meta, card = request
+
+	streams = playable_streams(kodi_type, video_id)
 	if not streams:
 		xbmcgui.Dialog().notification(ADDON_NAME, _(S_NO_STREAMS), xbmcgui.NOTIFICATION_INFO)
 		xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
@@ -1657,6 +1700,8 @@ def router():
 		search_all(params.get('query'), _screen(params))
 	elif action == 'play_external':
 		play_external(params)
+	elif action == 'list_external':
+		list_external(params)
 	elif action == 'install_th_player':
 		install_th_player()
 	elif action == 'open_settings':

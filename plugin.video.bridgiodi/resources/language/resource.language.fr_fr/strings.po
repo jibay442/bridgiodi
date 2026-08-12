@@ -323,8 +323,8 @@ msgid "Register Bridgiodi in TMDb Helper"
 msgstr "Enregistrer Bridgiodi dans TMDb Helper"
 
 msgctxt "#30129"
-msgid "Bridgiodi is now a player in TMDb Helper. Pick it there as your player for movies and episodes."
-msgstr "Bridgiodi est maintenant un player dans TMDb Helper. Choisis-le comme player pour les films et les episodes."
+msgid "Bridgiodi is now a player in TMDb Helper, twice: \"Bridgiodi\" plays the best source, \"Bridgiodi (select source)\" asks which one. Pick either as your player for movies and episodes - the other one stays available under \"Select player\" in the context menu."
+msgstr "Bridgiodi est maintenant un player dans TMDb Helper, en double : \"Bridgiodi\" lance la meilleure source, \"Bridgiodi (select source)\" demande laquelle. Choisis l'un des deux comme player pour les films et les episodes - l'autre reste accessible via \"Selectionner le lecteur\" dans le menu contextuel."
 
 msgctxt "#30130"
 msgid "TMDb Helper is not installed"
@@ -335,8 +335,8 @@ msgid "Could not register the player: %s"
 msgstr "Impossible d'enregistrer le player : %s"
 
 msgctxt "#30132"
-msgid "Writes a player file into TMDb Helper so playing a movie or an episode from it uses Bridgiodi. Nothing is written until you press this."
-msgstr "Ecrit un fichier player dans TMDb Helper pour que lancer un film ou un episode depuis lui passe par Bridgiodi. Rien n'est ecrit avant que tu appuies ici."
+msgid "Writes two player files into TMDb Helper so playing a movie or an episode from it uses Bridgiodi - one that plays the best source, one that lets you pick. Nothing is written until you press this."
+msgstr "Ecrit deux fichiers player dans TMDb Helper pour que lancer un film ou un episode depuis lui passe par Bridgiodi - un qui lance la meilleure source, un qui te laisse choisir. Rien n'est ecrit avant que tu appuies ici."
 
 msgctxt "#30133"
 msgid "Play immediately when launched from TMDb Helper"
