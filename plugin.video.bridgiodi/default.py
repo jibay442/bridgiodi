@@ -504,6 +504,37 @@ _INFO_KEYS = ('title', 'originaltitle', 'plot', 'year', 'premiered', 'duration',
               'tvshowtitle', 'season', 'episode', 'playcount')
 
 
+def _unique_ids(item, mediatype):
+	"""(unique ids, default id type) for a ListItem, as setUniqueIDs wants them.
+
+	On an episode the ids the addon holds are the SERIES' ones - there is no
+	per-episode id anywhere in the pipeline - so they are published under the
+	'tvshow.' prefix, which is where every consumer expects a series id to be
+	on an episode. It matters for scrobbling: TMDb Helper's Trakt scrobbler
+	reads the series id off UniqueID(tvshow.tmdb) and, failing that, takes
+	UniqueID(tmdb) for the EPISODE's own TMDB id and tries to look the series
+	up from it - a lookup that can only miss, after which the id no longer
+	matches the one it started playback with and the episode is never
+	scrobbled. Movies were unaffected because a movie's ids do belong under
+	the bare keys.
+
+	Kodi hands the whole info tag of the item passed to setResolvedUrl to the
+	player (CFileItem::UpdateInfo copies it wholesale), so whatever is set
+	here replaces the ids of the item TMDb Helper started with - which is why
+	getting them right on this side is what fixes it.
+	"""
+	ids = {source: str(item[source]) for source in ('imdb', 'tmdb') if item.get(source)}
+	if mediatype != 'episode':
+		return ids, 'imdb' if 'imdb' in ids else 'tmdb'
+	unique = {'tvshow.%s' % source: value for source, value in ids.items()}
+	if 'imdb' in ids:
+		# IMDBNumber is also what a scrobbler falls back to when it has to
+		# find the series by title, so keep the series' IMDb id reachable.
+		unique['imdb'] = ids['imdb']
+		return unique, 'imdb'
+	return unique, 'tvshow.tmdb'
+
+
 def apply_info(li, item, mediatype, art=True):
 	"""Put a full video card on a ListItem.
 
@@ -530,9 +561,9 @@ def apply_info(li, item, mediatype, art=True):
 		pass
 	li.setInfo('video', info)
 
-	unique = {source: str(item[source]) for source in ('imdb', 'tmdb') if item.get(source)}
+	unique, default_id = _unique_ids(item, mediatype)
 	if unique:
-		li.setUniqueIDs(unique, 'imdb' if 'imdb' in unique else 'tmdb')
+		li.setUniqueIDs(unique, default_id)
 
 	if art:
 		poster, fanart = item.get('poster') or '', item.get('fanart') or ''
