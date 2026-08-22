@@ -10,7 +10,7 @@ import xbmcgui
 import xbmcplugin
 import xbmcaddon
 
-from resources.lib import cache, mdblist, net, tmdb, tmdbhelper
+from resources.lib import cache, mdblist, net, romanize, tmdb, tmdbhelper
 
 ADDON = xbmcaddon.Addon()
 ADDON_NAME = ADDON.getAddonInfo('name')
@@ -223,10 +223,47 @@ def stream_display(stream):
 		if m:
 			size_text = m.group(0)
 
+	# Flags and size go BEFORE the name, not after: these filenames are
+	# often long enough that Kodi truncates the label with "...", which
+	# silently hid the badges when they were appended at the end instead.
 	label = name
+	flags = _quality_flags(_stream_blob(stream), behavior)
+	if flags:
+		label = '[%s]  %s' % ('|'.join(flags), label)
 	if size_text:
-		label = '%s  [%s]' % (label, size_text)
+		label = '[%s]  %s' % (size_text, label)
 	return label, name
+
+
+def _quality_flags(blob, behavior):
+	"""Short plain-text badges (4K, HDR10+, DV, ATMOS, 7.1, HEVC...) built
+	from the same detectors the quality sort uses, so the stream list shows
+	at a glance what the ranking is actually reacting to. Kept to plain
+	ASCII on purpose - emoji/symbol badges hit the same missing-glyph "tofu
+	box" issue as CJK text on skins whose font doesn't cover them."""
+	flags = []
+	for pattern, label in _RESOLUTION_FLAGS:
+		if pattern.search(blob):
+			flags.append(label)
+			break
+	if re.search(r'hdr\s*10\s*\+|hdr\+', blob, re.I):
+		flags.append('HDR10+')
+	elif re.search(r'\bhdr(10)?\b', blob, re.I):
+		flags.append('HDR')
+	if re.search(r'dolby\s*vision|\bdovi\b|\bdv\b', blob, re.I):
+		flags.append('DV')
+	for pattern, label in _AUDIO_FORMAT_FLAGS:
+		if pattern.search(blob):
+			flags.append(label)
+			break
+	channels = max((m.group(0) for m in _AUDIO_CHANNELS.finditer(blob)), key=len, default='')
+	if channels:
+		flags.append(channels.replace(',', '.'))
+	for pattern, label in _CODEC_FLAGS:
+		if pattern.search(blob):
+			flags.append(label)
+			break
+	return flags
 
 
 def _stream_blob(stream):
@@ -369,6 +406,15 @@ def _rank_codec(blob, behavior):
 	return 0
 
 
+# Display labels for _quality_flags, reusing the same compiled patterns as
+# the ranking tables above (highest-ranked pattern first in each) so the
+# badges shown never drift out of sync with what the sort is reacting to.
+_RESOLUTION_FLAGS = tuple(zip((p for p, _r in _RESOLUTION_RANK), ('4K', '1080p', '720p')))
+_AUDIO_FORMAT_FLAGS = tuple(zip(
+	(p for p, _r in _AUDIO_FORMAT_RANK), ('ATMOS', 'TrueHD', 'DTS-HD', 'EAC3', 'AC3')))
+_CODEC_FLAGS = tuple(zip((p for p, _r in _CODEC_RANK), ('AV1', 'HEVC', 'AVC')))
+
+
 # Criterion id (as stored in the sort_priority_N settings) -> ranking function.
 # Ids must stay stable, they're the <option> values in resources/settings.xml.
 # Size is a placeholder here: it depends on the whole result list, so
@@ -458,6 +504,37 @@ _INFO_KEYS = ('title', 'originaltitle', 'plot', 'year', 'premiered', 'duration',
               'tvshowtitle', 'season', 'episode', 'playcount')
 
 
+def _unique_ids(item, mediatype):
+	"""(unique ids, default id type) for a ListItem, as setUniqueIDs wants them.
+
+	On an episode the ids the addon holds are the SERIES' ones - there is no
+	per-episode id anywhere in the pipeline - so they are published under the
+	'tvshow.' prefix, which is where every consumer expects a series id to be
+	on an episode. It matters for scrobbling: TMDb Helper's Trakt scrobbler
+	reads the series id off UniqueID(tvshow.tmdb) and, failing that, takes
+	UniqueID(tmdb) for the EPISODE's own TMDB id and tries to look the series
+	up from it - a lookup that can only miss, after which the id no longer
+	matches the one it started playback with and the episode is never
+	scrobbled. Movies were unaffected because a movie's ids do belong under
+	the bare keys.
+
+	Kodi hands the whole info tag of the item passed to setResolvedUrl to the
+	player (CFileItem::UpdateInfo copies it wholesale), so whatever is set
+	here replaces the ids of the item TMDb Helper started with - which is why
+	getting them right on this side is what fixes it.
+	"""
+	ids = {source: str(item[source]) for source in ('imdb', 'tmdb') if item.get(source)}
+	if mediatype != 'episode':
+		return ids, 'imdb' if 'imdb' in ids else 'tmdb'
+	unique = {'tvshow.%s' % source: value for source, value in ids.items()}
+	if 'imdb' in ids:
+		# IMDBNumber is also what a scrobbler falls back to when it has to
+		# find the series by title, so keep the series' IMDb id reachable.
+		unique['imdb'] = ids['imdb']
+		return unique, 'imdb'
+	return unique, 'tvshow.tmdb'
+
+
 def apply_info(li, item, mediatype, art=True):
 	"""Put a full video card on a ListItem.
 
@@ -484,9 +561,9 @@ def apply_info(li, item, mediatype, art=True):
 		pass
 	li.setInfo('video', info)
 
-	unique = {source: str(item[source]) for source in ('imdb', 'tmdb') if item.get(source)}
+	unique, default_id = _unique_ids(item, mediatype)
 	if unique:
-		li.setUniqueIDs(unique, 'imdb' if 'imdb' in unique else 'tmdb')
+		li.setUniqueIDs(unique, default_id)
 
 	if art:
 		poster, fanart = item.get('poster') or '', item.get('fanart') or ''
@@ -595,7 +672,16 @@ def _provider_host(index):
 	return ''
 
 
-def list_streams(kodi_type, video_id, scrobble_meta=None, card=None):
+def list_streams(kodi_type, video_id, scrobble_meta=None, card=None, label_as_title=False):
+	"""Directory of every playable source for one item.
+
+	label_as_title also writes each source's label into the info tag title,
+	which is normally exactly what must NOT happen (see below) - it is for the
+	listing TMDb Helper reads over JSON-RPC and never shows: its own picker
+	labels rows from the title and would otherwise repeat the film's name on
+	every row. That listing is throwaway, the item it plays is re-resolved
+	through action=resolve and gets a clean card.
+	"""
 	card = card if card is not None else dict(scrobble_meta or {})
 	streams = playable_streams(kodi_type, video_id)
 	if not streams:
@@ -620,7 +706,8 @@ def list_streams(kodi_type, video_id, scrobble_meta=None, card=None):
 		# The release filename belongs in the LABEL only, so you can still tell
 		# sources apart. It used to overwrite the title in the info tag, which
 		# is precisely why Kodi and Kore showed a filename instead of the film.
-		apply_info(li, card, card.get('mediatype') or 'video')
+		apply_info(li, dict(card, title=label) if label_as_title else card,
+		           card.get('mediatype') or 'video')
 		li.setProperty('IsPlayable', 'true')
 		play_params = dict(scrobble_meta or {}, action='resolve', url=url)
 		if card.get('tmdb'):
@@ -854,7 +941,8 @@ def render_items(items, next_page_params=None):
 	for item in items:
 		year = item.get('year') or ''
 		title = item.get('title') or 'Unknown'
-		li = xbmcgui.ListItem(label='%s (%s)' % (title, year) if year else title)
+		label = _catalog_label(item)
+		li = xbmcgui.ListItem(label='%s (%s)' % (label, year) if year else label)
 		apply_info(li, item, 'movie' if is_movie else 'tvshow')
 		is_leaf_movie = is_movie and auto_play
 		if is_leaf_movie:
@@ -880,6 +968,20 @@ def render_items(items, next_page_params=None):
 		url = '%s?%s' % (BASE_URL, urlencode(next_page_params))
 		xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
 	xbmcplugin.endOfDirectory(HANDLE)
+
+
+def _catalog_label(item):
+	"""Display label for a catalogue row - the original-language title when
+	the setting is on and TMDB actually has one, the localised title
+	otherwise. apply_info() still sets BOTH title and originaltitle on the
+	info tag regardless, this only changes what the list shows."""
+	if ADDON.getSetting('show_original_title') == 'true':
+		original = item.get('originaltitle')
+		if original:
+			if ADDON.getSetting('romanize_titles') == 'true':
+				return romanize.romanize(original)
+			return original
+	return item.get('title') or 'Unknown'
 
 
 def _browse(kind, catalog_id, screen=1, genre=None, year=None):
@@ -930,7 +1032,8 @@ def render_mixed_items(items, next_page_params=None):
 		is_movie = (item.get('media') or 'movie') == 'movie'
 		year = item.get('year') or ''
 		title = item.get('title') or 'Unknown'
-		li = xbmcgui.ListItem(label='%s (%s)' % (title, year) if year else title)
+		label = _catalog_label(item)
+		li = xbmcgui.ListItem(label='%s (%s)' % (label, year) if year else label)
 		apply_info(li, item, 'movie' if is_movie else 'tvshow')
 		target_action = ('movie_play_best' if auto_play else 'movie_streams') if is_movie else 'seasons'
 		is_leaf_movie = is_movie and auto_play
@@ -1467,12 +1570,13 @@ def _scrobble_meta(params):
 	return meta
 
 
-def play_external(params):
-	"""Entry point used by TMDb Helper (see resources/players/bridgiodi.json).
+def _external_request(params):
+	"""(kodi_type, video_id, scrobble meta, card) for a TMDb Helper request.
 
-	One resolvable entry point rather than two players: with auto-play off it
-	shows a modal source picker instead of a directory, because a player
-	declared resolvable has to answer with setResolvedUrl either way.
+	Returns None - after telling the user why - when the item cannot be
+	identified. Shared by the two entry points TMDb Helper is given: one that
+	resolves a stream straight away, one that hands the list back for its own
+	picker.
 	"""
 	is_episode = params.get('type') == 'episode'
 	if is_episode:
@@ -1486,8 +1590,7 @@ def play_external(params):
 		imdb_id = _movie_imdb(params)
 	if not imdb_id:
 		xbmcgui.Dialog().notification(ADDON_NAME, _(S_NO_IMDB), xbmcgui.NOTIFICATION_INFO)
-		xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
-		return
+		return None
 
 	meta = {'mediatype': 'episode' if is_episode else 'movie', 'imdbnumber': imdb_id,
 	        'title': params.get('title') or '', 'year': params.get('year') or ''}
@@ -1498,9 +1601,42 @@ def play_external(params):
 	else:
 		video_id = imdb_id
 	meta = _scrobble_meta(meta)
-	card = _card(params, meta)
+	return 'series' if is_episode else 'movie', video_id, meta, _card(params, meta)
 
-	streams = playable_streams('series' if is_episode else 'movie', video_id)
+
+def list_external(params):
+	"""Source list for TMDb Helper, as a directory it reads itself.
+
+	Second half of the "choose the source" player (see
+	resources/players/bridgiodi_select.json): its {"dialog": "true"} step makes
+	TMDb Helper pull this listing over JSON-RPC, show its own picker, and then
+	resolve the chosen item itself. Going back through TMDb Helper is the point
+	- it only reports to Trakt what it resolved, so a listing it merely opens
+	as a folder would play fine and scrobble nothing.
+	"""
+	request = _external_request(params)
+	if not request:
+		xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+		return
+	kodi_type, video_id, meta, card = request
+	list_streams(kodi_type, video_id, meta, card, label_as_title=True)
+
+
+def play_external(params):
+	"""Entry point used by TMDb Helper (see resources/players/bridgiodi.json).
+
+	Declared resolvable, so it has to answer with setResolvedUrl either way:
+	with auto-play off it asks through a modal source picker rather than a
+	directory. Handing the sources back as a directory instead is
+	list_external, which is what the second player file uses.
+	"""
+	request = _external_request(params)
+	if not request:
+		xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
+		return
+	kodi_type, video_id, meta, card = request
+
+	streams = playable_streams(kodi_type, video_id)
 	if not streams:
 		xbmcgui.Dialog().notification(ADDON_NAME, _(S_NO_STREAMS), xbmcgui.NOTIFICATION_INFO)
 		xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
@@ -1564,6 +1700,8 @@ def router():
 		search_all(params.get('query'), _screen(params))
 	elif action == 'play_external':
 		play_external(params)
+	elif action == 'list_external':
+		list_external(params)
 	elif action == 'install_th_player':
 		install_th_player()
 	elif action == 'open_settings':

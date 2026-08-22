@@ -323,7 +323,7 @@ msgid "Register Bridgiodi in TMDb Helper"
 msgstr ""
 
 msgctxt "#30129"
-msgid "Bridgiodi is now a player in TMDb Helper. Pick it there as your player for movies and episodes."
+msgid "Bridgiodi is now a player in TMDb Helper, twice: \"Bridgiodi\" plays the best source, \"Bridgiodi (select source)\" asks which one. Pick either as your player for movies and episodes - the other one stays available under \"Select player\" in the context menu."
 msgstr ""
 
 msgctxt "#30130"
@@ -335,7 +335,7 @@ msgid "Could not register the player: %s"
 msgstr ""
 
 msgctxt "#30132"
-msgid "Writes a player file into TMDb Helper so playing a movie or an episode from it uses Bridgiodi. Nothing is written until you press this."
+msgid "Writes two player files into TMDb Helper so playing a movie or an episode from it uses Bridgiodi - one that plays the best source, one that lets you pick. Nothing is written until you press this."
 msgstr ""
 
 msgctxt "#30133"
@@ -508,4 +508,20 @@ msgstr ""
 
 msgctxt "#30178"
 msgid "Stremio addon manifest URL #5"
+msgstr ""
+
+msgctxt "#30179"
+msgid "Show original-language titles"
+msgstr ""
+
+msgctxt "#30180"
+msgid "Shows TMDB's original title instead of the localised one in catalogue and search lists, when TMDB has one. The info screen still shows both."
+msgstr ""
+
+msgctxt "#30181"
+msgid "Romanize non-Latin titles"
+msgstr ""
+
+msgctxt "#30182"
+msgid "Transliterates original titles written in Japanese, Chinese, Korean, Cyrillic, Greek or Arabic script into the Latin alphabet, so they show as readable text instead of missing-glyph boxes. Best-effort only - Japanese kanji come out with their Chinese reading, not true romaji."
 msgstr ""
