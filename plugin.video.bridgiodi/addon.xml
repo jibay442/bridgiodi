@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.bridgiodi" name="Bridgiodi" version="1.0.0" provider-name="jibay442">
+<addon id="plugin.video.bridgiodi" name="Bridgiodi" version="1.0.1" provider-name="jibay442">
 	<requires>
 		<import addon="xbmc.python" version="3.0.0"/>
 	</requires>
@@ -11,7 +11,14 @@
 		<description lang="en_GB">Standalone player for Stremio addons that only expose a "stream" resource (no catalog), such as Lumio.tv. Configure one or more of them, browse TMDB catalogues for movies, TV shows and anime, or search, then pick a stream to play directly, bypassing any torrent/debrid-oriented scraper pipeline. Requires a free TMDB API key.[CR][CR]This product uses TMDB and the TMDB APIs but is not endorsed, certified, or otherwise approved by TMDB.</description>
 		<platform>all</platform>
 		<license>MIT</license>
-		<news>v1.0.0:
+		<news>v1.0.1:
+- Episodes are scrobbled to Trakt through TMDb Helper again (movies were unaffected)
+- New "Bridgiodi (select source)" TMDb Helper player: opens its source picker instead of auto-playing
+- Optional original-language titles in lists, with romanization of non-Latin ones
+- Quality badges (4K, HDR10+, DV, ATMOS...) in the stream list, in front of the filename
+- "Install from zip" browsing of the repository source no longer shows an empty folder
+
+v1.0.0:
 - Renamed from Lumio to Bridgiodi - works with any stream-only Stremio addon
 - Multi-provider support: up to 5 Stremio manifests, priority-ordered
 - Local resume playback, without needing Trakt or TMDb Helper
