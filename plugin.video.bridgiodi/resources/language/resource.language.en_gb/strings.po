@@ -535,9 +535,9 @@ msgid "Comma-separated list of shows or films that should ignore the original la
 msgstr ""
 
 msgctxt "#30185"
-msgid "Language for those titles"
+msgid "Language code for those titles (fr, en, es...)"
 msgstr ""
 
 msgctxt "#30186"
-msgid "Two-letter language code, e.g. fr. Leave empty to use Kodi's own interface language."
+msgid "Two-letter language code: fr, en, es, ja... The English name (\"french\") and the 3-letter forms (\"fre\", \"fra\") work too. Leave empty to use Kodi's own interface language, which is what an unrecognised value falls back to as well."
 msgstr ""

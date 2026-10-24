@@ -819,6 +819,36 @@ def _normalise_title(text):
 	return romanize.romanize(text or '').strip().lower()
 
 
+# Shorthands a user is likelier to reach for than an ISO code when naming the
+# dubbed version of something. Deliberately excludes VOST* and friends: those
+# mean subtitles over the original audio, which is not an audio language.
+_DUB_SHORTHAND = {'vf': 'fr', 'vff': 'fr', 'vfq': 'fr', 'vfi': 'fr'}
+
+
+def _audio_language_code(value):
+	"""An ISO 639-1 code out of whatever was typed in the language field.
+
+	It is free text entered on a remote, so it takes the code itself, the
+	3-letter variants, the English name - everything the alias table already
+	recognises on a track - and the local shorthands above. Anything else
+	falls back to Kodi's own language, on the grounds that someone typing an
+	unreadable value is asking for "the language I speak", not for silence.
+	"""
+	value = (value or '').strip().lower()
+	kodi_language = xbmc.getLanguage(xbmc.ISO_639_1) or ''
+	if not value:
+		return kodi_language
+	if value in _AUDIO_LANGUAGE_ALIASES:
+		return value
+	for code, aliases in _AUDIO_LANGUAGE_ALIASES.items():
+		if value in aliases:
+			return code
+	if value in _DUB_SHORTHAND:
+		return _DUB_SHORTHAND[value]
+	log('audio_force_language: %r is not a language code, falling back to %r' % (value, kodi_language))
+	return kodi_language
+
+
 def _forced_audio_language(card):
 	"""Language code this title is pinned to by the exception list, or ''.
 
@@ -834,8 +864,7 @@ def _forced_audio_language(card):
 	titles = [_normalise_title(title) for title in _audio_match_titles(card)]
 	if not any(pattern in title for pattern in patterns for title in titles):
 		return ''
-	return (ADDON.getSetting('audio_force_language').strip().lower()
-	        or xbmc.getLanguage(xbmc.ISO_639_1) or '')
+	return _audio_language_code(ADDON.getSetting('audio_force_language'))
 
 
 def _preferred_audio_language(card):

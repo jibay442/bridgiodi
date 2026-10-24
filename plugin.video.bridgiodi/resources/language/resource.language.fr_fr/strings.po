@@ -535,9 +535,9 @@ msgid "Comma-separated list of shows or films that should ignore the original la
 msgstr "Liste de series ou de films, separes par des virgules, qui doivent ignorer la langue originale et utiliser la langue ci-dessous - pour les quelques-uns que tu regardes toujours double. La correspondance se fait sur le titre de la serie (pas de l'episode), sans tenir compte de la casse ni des accents, et accepte aussi le titre original : \"griffin\" et \"family guy\" marchent tous les deux. Un nom partiel suffit. Ne fonctionne que si le fichier contient reellement une piste dans cette langue."
 
 msgctxt "#30185"
-msgid "Language for those titles"
-msgstr "Langue pour ces titres"
+msgid "Language code for those titles (fr, en, es...)"
+msgstr "Code de la langue pour ces titres (fr, en, es...)"
 
 msgctxt "#30186"
-msgid "Two-letter language code, e.g. fr. Leave empty to use Kodi's own interface language."
-msgstr "Code de langue a deux lettres, par exemple fr. Laisse vide pour utiliser la langue de l'interface Kodi."
+msgid "Two-letter language code: fr, en, es, ja... The English name (\"french\") and the 3-letter forms (\"fre\", \"fra\") work too. Leave empty to use Kodi's own interface language, which is what an unrecognised value falls back to as well."
+msgstr "Code de langue a deux lettres : fr, en, es, ja... Le nom anglais (\"french\") et les formes a trois lettres (\"fre\", \"fra\") marchent aussi, tout comme \"VF\". Laisse vide pour utiliser la langue de l'interface Kodi - c'est aussi ce qui est utilise si la valeur n'est pas reconnue."
