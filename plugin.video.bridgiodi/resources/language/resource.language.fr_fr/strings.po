@@ -525,3 +525,19 @@ msgstr "Romaniser les titres non-latins"
 msgctxt "#30182"
 msgid "Transliterates original titles written in Japanese, Chinese, Korean, Cyrillic, Greek or Arabic script into the Latin alphabet, so they show as readable text instead of missing-glyph boxes. Best-effort only - Japanese kanji come out with their Chinese reading, not true romaji."
 msgstr "Translittere les titres originaux ecrits en japonais, chinois, coreen, cyrillique, grec ou arabe vers l'alphabet latin, pour qu'ils s'affichent lisiblement au lieu de carres. Best-effort seulement - les kanji japonais ressortent avec leur lecture chinoise, pas le vrai romaji."
+
+msgctxt "#30183"
+msgid "Titles to always play in another language"
+msgstr "Titres a toujours lire dans une autre langue"
+
+msgctxt "#30184"
+msgid "Comma-separated list of shows or films that should ignore the original language and use the language below instead - for the handful you always watch dubbed. Matching is on the series title (not the episode), ignores case and accents, and accepts the original title too, so \"griffin\" and \"family guy\" both match. A partial name is enough. Only works if the file actually carries a track in that language."
+msgstr "Liste de series ou de films, separes par des virgules, qui doivent ignorer la langue originale et utiliser la langue ci-dessous - pour les quelques-uns que tu regardes toujours double. La correspondance se fait sur le titre de la serie (pas de l'episode), sans tenir compte de la casse ni des accents, et accepte aussi le titre original : \"griffin\" et \"family guy\" marchent tous les deux. Un nom partiel suffit. Ne fonctionne que si le fichier contient reellement une piste dans cette langue."
+
+msgctxt "#30185"
+msgid "Language for those titles"
+msgstr "Langue pour ces titres"
+
+msgctxt "#30186"
+msgid "Two-letter language code, e.g. fr. Leave empty to use Kodi's own interface language."
+msgstr "Code de langue a deux lettres, par exemple fr. Laisse vide pour utiliser la langue de l'interface Kodi."

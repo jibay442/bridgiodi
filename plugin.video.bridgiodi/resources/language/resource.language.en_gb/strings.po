@@ -525,3 +525,19 @@ msgstr ""
 msgctxt "#30182"
 msgid "Transliterates original titles written in Japanese, Chinese, Korean, Cyrillic, Greek or Arabic script into the Latin alphabet, so they show as readable text instead of missing-glyph boxes. Best-effort only - Japanese kanji come out with their Chinese reading, not true romaji."
 msgstr ""
+
+msgctxt "#30183"
+msgid "Titles to always play in another language"
+msgstr ""
+
+msgctxt "#30184"
+msgid "Comma-separated list of shows or films that should ignore the original language and use the language below instead - for the handful you always watch dubbed. Matching is on the series title (not the episode), ignores case and accents, and accepts the original title too, so \"griffin\" and \"family guy\" both match. A partial name is enough. Only works if the file actually carries a track in that language."
+msgstr ""
+
+msgctxt "#30185"
+msgid "Language for those titles"
+msgstr ""
+
+msgctxt "#30186"
+msgid "Two-letter language code, e.g. fr. Leave empty to use Kodi's own interface language."
+msgstr ""

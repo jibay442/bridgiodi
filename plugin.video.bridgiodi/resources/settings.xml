@@ -23,6 +23,36 @@
 					<default>false</default>
 					<control type="toggle"/>
 				</setting>
+				<setting id="audio_force_titles" type="string" label="30183" help="30184" parent="force_original_audio">
+					<level>0</level>
+					<default/>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<condition operator="is" setting="force_original_audio">true</condition>
+						</dependency>
+					</dependencies>
+					<control type="edit" format="string">
+						<heading>30183</heading>
+					</control>
+				</setting>
+				<setting id="audio_force_language" type="string" label="30185" help="30186" parent="force_original_audio">
+					<level>0</level>
+					<default/>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<condition operator="is" setting="force_original_audio">true</condition>
+						</dependency>
+					</dependencies>
+					<control type="edit" format="string">
+						<heading>30185</heading>
+					</control>
+				</setting>
 			</group>
 		</category>
 		<category id="tmdb" label="30105">

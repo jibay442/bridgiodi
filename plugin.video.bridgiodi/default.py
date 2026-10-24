@@ -792,14 +792,59 @@ _AUDIO_LANGUAGE_ALIASES = {
 }
 
 
-def _match_audio_stream_index(streams, original_language):
-	aliases = _AUDIO_LANGUAGE_ALIASES.get((original_language or '').lower())
+def _match_audio_stream_index(streams, language):
+	aliases = _AUDIO_LANGUAGE_ALIASES.get((language or '').lower())
 	if not aliases:
 		return None
 	for index, label in enumerate(streams or []):
 		if (label or '').strip().lower() in aliases:
 			return index
 	return None
+
+
+def _audio_match_titles(card):
+	"""The titles the exception list is matched against.
+
+	An episode is matched on its SERIES, never on the episode's own title -
+	the list names shows, and an episode called "Simpson" in some unrelated
+	series shouldn't drag the whole thing into the exception.
+	"""
+	card = card or {}
+	main = card.get('tvshowtitle') if card.get('mediatype') == 'episode' else card.get('title')
+	return [title for title in (main, card.get('originaltitle')) if title]
+
+
+def _normalise_title(text):
+	"""Casefolded and accent-stripped, so the list can be typed carelessly."""
+	return romanize.romanize(text or '').strip().lower()
+
+
+def _forced_audio_language(card):
+	"""Language code this title is pinned to by the exception list, or ''.
+
+	For the handful of shows watched dubbed while everything else stays in
+	its original language. Substring matching on purpose: "griffin" should
+	be enough to catch "Les Griffin" without anyone transcribing punctuation
+	off a TV screen.
+	"""
+	patterns = [p for p in (_normalise_title(entry)
+	                        for entry in ADDON.getSetting('audio_force_titles').split(',')) if p]
+	if not patterns:
+		return ''
+	titles = [_normalise_title(title) for title in _audio_match_titles(card)]
+	if not any(pattern in title for pattern in patterns for title in titles):
+		return ''
+	return (ADDON.getSetting('audio_force_language').strip().lower()
+	        or xbmc.getLanguage(xbmc.ISO_639_1) or '')
+
+
+def _preferred_audio_language(card):
+	"""Language the audio should end up in, or '' to leave Kodi's pick alone.
+
+	The exception list outranks TMDB's original language - overriding it for
+	named titles is the entire point of that list.
+	"""
+	return _forced_audio_language(card) or (card or {}).get('original_language') or ''
 
 
 def _playing_audio_language():
@@ -811,21 +856,22 @@ def _playing_audio_language():
 	return (xbmc.getInfoLabel('VideoPlayer.AudioLanguage') or '').strip().lower()
 
 
-def _apply_original_audio(card):
-	"""Switches to the original-language audio track, once it's known.
+def _apply_preferred_audio(card):
+	"""Switches to the audio track in the wanted language, once it's known.
 
-	A "default" flag baked into the file is not reliable evidence of the
-	original language - a dub is routinely flagged default - so this reads
-	TMDB's own original_language instead of trusting the file.
+	That is TMDB's original language, or whatever the exception list pins
+	this title to. A "default" flag baked into the file is not reliable
+	evidence of either - a dub is routinely flagged default - so the
+	decision comes from metadata, not from the file.
 	"""
-	original_language = (card or {}).get('original_language')
-	if not original_language:
+	wanted = _preferred_audio_language(card)
+	if not wanted:
 		return
-	aliases = _AUDIO_LANGUAGE_ALIASES.get(original_language.lower())
+	aliases = _AUDIO_LANGUAGE_ALIASES.get(wanted)
 	if not aliases:
 		# Nothing to match against, so nothing to switch to - bail before
 		# spending the wait below on a question that has no answer.
-		log_debug('force_original_audio: no language tokens known for %s' % original_language)
+		log_debug('force_original_audio: no language tokens known for %s' % wanted)
 		return
 	monitor = xbmc.Monitor()
 	player = xbmc.Player()
@@ -848,15 +894,15 @@ def _apply_original_audio(card):
 	# default track stall for no reason at all.
 	playing = _playing_audio_language()
 	if playing in aliases:
-		log_debug('force_original_audio: already playing %s (%s), left alone' % (original_language, playing))
+		log_debug('force_original_audio: already playing %s (%s), left alone' % (wanted, playing))
 		return
-	index = _match_audio_stream_index(streams, original_language)
+	index = _match_audio_stream_index(streams, wanted)
 	if index is None:
-		log_debug('force_original_audio: no %s track among %r' % (original_language, streams))
+		log_debug('force_original_audio: no %s track among %r' % (wanted, streams))
 		return
 	try:
 		player.setAudioStream(index)
-		log_debug('force_original_audio: switched to stream %d (%s) out of %r' % (index, original_language, streams))
+		log_debug('force_original_audio: switched to stream %d (%s) out of %r' % (index, wanted, streams))
 	except Exception as e:
 		log('force_original_audio: setAudioStream failed: %s' % e)
 
@@ -875,7 +921,7 @@ def _track_playback(scrobble_meta, card=None):
 	"""
 	local_resume = bool(scrobble_meta) and _local_resume_enabled()
 	mdblist_sync = bool(scrobble_meta) and scrobble_meta.get('imdbnumber') and _mdblist_ready()
-	force_audio = ADDON.getSetting('force_original_audio') == 'true' and bool((card or {}).get('original_language'))
+	force_audio = ADDON.getSetting('force_original_audio') == 'true' and bool(_preferred_audio_language(card))
 	if not local_resume and not mdblist_sync and not force_audio:
 		return
 
@@ -890,7 +936,7 @@ def _track_playback(scrobble_meta, card=None):
 		return
 
 	if force_audio:
-		_apply_original_audio(card)
+		_apply_preferred_audio(card)
 	if not local_resume and not mdblist_sync:
 		return
 
