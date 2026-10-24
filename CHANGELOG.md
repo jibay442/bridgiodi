@@ -5,7 +5,7 @@ All notable changes to Bridgiodi are documented here. Format loosely follows
 match the `version` attribute in `plugin.video.bridgiodi/addon.xml` exactly -
 the release workflow pulls this file's matching section as release notes.
 
-## [1.0.1] - 2026-08-22
+## [1.1.0] - 2026-10-24
 
 ### Fixed
 - Episodes are scrobbled to Trakt again when playing through TMDb Helper.
