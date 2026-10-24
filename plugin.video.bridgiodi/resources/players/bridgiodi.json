@@ -3,6 +3,7 @@
 	"plugin": "plugin.video.bridgiodi",
 	"priority": 100,
 	"is_resolvable": "true",
+	"make_playlist": "true",
 	"assert": {
 		"play_movie": ["tmdb"],
 		"play_episode": ["tmdb", "season", "episode"]

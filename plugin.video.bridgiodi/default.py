@@ -802,6 +802,15 @@ def _match_audio_stream_index(streams, original_language):
 	return None
 
 
+def _playing_audio_language():
+	"""Language of the audio track Kodi actually picked, lowercased.
+
+	xbmc.Player has a setter for the audio stream but no getter, so this
+	comes off the infolabel - the same value the skin shows.
+	"""
+	return (xbmc.getInfoLabel('VideoPlayer.AudioLanguage') or '').strip().lower()
+
+
 def _apply_original_audio(card):
 	"""Switches to the original-language audio track, once it's known.
 
@@ -811,6 +820,12 @@ def _apply_original_audio(card):
 	"""
 	original_language = (card or {}).get('original_language')
 	if not original_language:
+		return
+	aliases = _AUDIO_LANGUAGE_ALIASES.get(original_language.lower())
+	if not aliases:
+		# Nothing to match against, so nothing to switch to - bail before
+		# spending the wait below on a question that has no answer.
+		log_debug('force_original_audio: no language tokens known for %s' % original_language)
 		return
 	monitor = xbmc.Monitor()
 	player = xbmc.Player()
@@ -826,6 +841,15 @@ def _apply_original_audio(card):
 			break
 		if monitor.waitForAbort(0.4):
 			return
+	# A switch costs a demuxer re-open, and on a remote stream that can
+	# silence playback for a long moment - so never pay for it when the track
+	# Kodi already settled on is in the right language. This used to switch
+	# unconditionally, which made every file with an original-language
+	# default track stall for no reason at all.
+	playing = _playing_audio_language()
+	if playing in aliases:
+		log_debug('force_original_audio: already playing %s (%s), left alone' % (original_language, playing))
+		return
 	index = _match_audio_stream_index(streams, original_language)
 	if index is None:
 		log_debug('force_original_audio: no %s track among %r' % (original_language, streams))
