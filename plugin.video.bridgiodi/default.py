@@ -774,7 +774,13 @@ def resolve_and_play(url, scrobble_meta=None, resume=None, card=None):
 # whatever the file's own container tags say, which varies by muxer - matching
 # loosely against several plausible spellings is more reliable than picking one.
 _AUDIO_LANGUAGE_ALIASES = {
-	'en': ('en', 'eng', 'english'), 'fr': ('fr', 'fre', 'fra', 'french'),
+	'en': ('en', 'eng', 'english'),
+	# French releases habitually label the dub rather than the language:
+	# VFF (France), VFQ (Quebec), VFI (international), VOF. VOST* is left
+	# out on purpose - it means subtitles over original audio, not a
+	# French audio track.
+	'fr': ('fr', 'fre', 'fra', 'french', 'francais',
+	       'vf', 'vff', 'vfq', 'vfi', 'vof'),
 	'ja': ('ja', 'jpn', 'japanese'), 'ko': ('ko', 'kor', 'korean'),
 	'de': ('de', 'ger', 'deu', 'german'), 'es': ('es', 'spa', 'spanish'),
 	'it': ('it', 'ita', 'italian'), 'pt': ('pt', 'por', 'portuguese'),
@@ -792,12 +798,25 @@ _AUDIO_LANGUAGE_ALIASES = {
 }
 
 
+def _audio_label_tokens(label):
+	"""Words of a track label, accent-folded and lowercased.
+
+	Kodi reports a track's language tag when the file has one and the
+	track's free-text name when it doesn't, and that name is written by
+	whoever muxed it: "VFF", "VFF 5.1", "Francais AC3". Matching the label
+	as a whole only ever worked for the first kind, so compare word by word
+	instead - and never as a substring, which would have "fr" matching
+	"Africa".
+	"""
+	return set(re.split(r'[^0-9a-z]+', romanize.romanize(label or '').lower()))
+
+
 def _match_audio_stream_index(streams, language):
 	aliases = _AUDIO_LANGUAGE_ALIASES.get((language or '').lower())
 	if not aliases:
 		return None
 	for index, label in enumerate(streams or []):
-		if (label or '').strip().lower() in aliases:
+		if _audio_label_tokens(label) & set(aliases):
 			return index
 	return None
 
@@ -819,18 +838,12 @@ def _normalise_title(text):
 	return romanize.romanize(text or '').strip().lower()
 
 
-# Shorthands a user is likelier to reach for than an ISO code when naming the
-# dubbed version of something. Deliberately excludes VOST* and friends: those
-# mean subtitles over the original audio, which is not an audio language.
-_DUB_SHORTHAND = {'vf': 'fr', 'vff': 'fr', 'vfq': 'fr', 'vfi': 'fr'}
-
-
 def _audio_language_code(value):
 	"""An ISO 639-1 code out of whatever was typed in the language field.
 
 	It is free text entered on a remote, so it takes the code itself, the
-	3-letter variants, the English name - everything the alias table already
-	recognises on a track - and the local shorthands above. Anything else
+	3-letter variants, the English name, the dub shorthands - everything the
+	alias table already recognises on a track. Anything else
 	falls back to Kodi's own language, on the grounds that someone typing an
 	unreadable value is asking for "the language I speak", not for silence.
 	"""
@@ -843,8 +856,6 @@ def _audio_language_code(value):
 	for code, aliases in _AUDIO_LANGUAGE_ALIASES.items():
 		if value in aliases:
 			return code
-	if value in _DUB_SHORTHAND:
-		return _DUB_SHORTHAND[value]
 	log('audio_force_language: %r is not a language code, falling back to %r' % (value, kodi_language))
 	return kodi_language
 
